@@ -116,6 +116,7 @@ model Asset {
   snapshots    Snapshot[]
   transactions Transaction[]
   importBatches ImportBatch[]
+  realizedTrades RealizedTrade[]
   createdAt    DateTime         @default(now())
 }
 
@@ -156,7 +157,33 @@ model Position {
   currency   String   @default("EUR")
   value      Float?
   valueEur   Float
+  avgPrice   Float?   // average purchase price in the instrument currency
+  costEur    Float?   // acquisition cost in EUR (value - unrealised profit)
   snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+}
+
+/// Realised gains/losses (closed positions), e.g. from the XTB "Closed Positions" sheet.
+model RealizedTrade {
+  id            String       @id @default(cuid())
+  assetId       String
+  externalId    String
+  name          String
+  ticker        String?
+  quantity      Float?
+  openPrice     Float?
+  closePrice    Float?
+  openTime      DateTime?
+  closeTime     DateTime
+  profitEur     Float
+  grossEur      Float?
+  commission    Float?
+  importBatchId String?
+  asset         Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+
+  @@unique([assetId, externalId])
+  @@index([assetId, closeTime])
 }
 
 model Category {
@@ -216,6 +243,7 @@ model ImportBatch {
   user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   snapshots    Snapshot[]
   transactions Transaction[]
+  realizedTrades RealizedTrade[]
   createdAt    DateTime      @default(now())
 }
 

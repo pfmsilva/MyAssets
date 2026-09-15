@@ -71,7 +71,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <Card title="Carteiras em direto (cotações Yahoo Finance)" className="mt-4" action={<span className="text-xs text-ink-3">património em direto ≈ {fmtEur(total + liveDelta, 0)}</span>}>
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Carteira</th><th className="text-right">Último registo</th><th className="text-right">Em direto</th><th className="text-right">Variação</th><th className="text-right">Hoje</th></tr></thead>
+              <thead><tr><th>Carteira</th><th className="text-right">Último registo</th><th className="text-right">Em direto</th><th className="text-right">Variação</th><th className="text-right">Hoje</th><th className="text-right">Ganho/perda</th></tr></thead>
               <tbody>
                 {liveRows.map(({ asset: a, v }) => (
                   <tr key={a.id}>
@@ -80,6 +80,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                     <td className="text-right"><Money value={v.liveTotal} className="font-medium" /></td>
                     <td className="text-right"><Delta value={v.delta} pct={v.deltaPct} /></td>
                     <td className="text-right"><Delta value={v.dayChangeEur} pct={v.dayChangePct} /></td>
+                    <td className="text-right">{v.unrealizedPnl !== null ? <Delta value={v.unrealizedPnl} pct={v.unrealizedPnlPct} /> : <span className="text-xs text-ink-3">sem custo</span>}</td>
                   </tr>
                 ))}
                 {liveRows.length > 1 && (
@@ -89,6 +90,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                     <td className="text-right"><Money value={liveRows.reduce((s, r) => s + r.v.liveTotal, 0)} /></td>
                     <td className="text-right"><Delta value={liveDelta} pct={null} /></td>
                     <td className="text-right"><Delta value={liveDay} pct={null} /></td>
+                    <td className="text-right">{liveRows.some((r) => r.v.unrealizedPnl !== null) ? <Delta value={liveRows.reduce((s, r) => s + (r.v.unrealizedPnl ?? 0), 0)} pct={null} /> : ""}</td>
                   </tr>
                 )}
               </tbody>

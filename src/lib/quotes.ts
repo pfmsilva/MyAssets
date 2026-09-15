@@ -242,6 +242,10 @@ export type LivePosition = {
   quantity: number | null;
   snapshotPrice: number | null;
   snapshotValueEur: number;
+  avgPrice: number | null;
+  costEur: number | null;
+  pnlEur: number | null; // vs. live value when available, else snapshot value
+  pnlPct: number | null;
   livePrice: number | null;
   liveCurrency: string | null;
   liveValueEur: number | null;
@@ -262,6 +266,9 @@ export type LiveValuation = {
   dayChangePct: number | null;
   quoted: number;
   quotable: number;
+  costTotal: number | null; // sum of known acquisition costs
+  unrealizedPnl: number | null;
+  unrealizedPnlPct: number | null;
   quotesAt: Date | null;
   error: string | null;
   positions: LivePosition[];
@@ -310,6 +317,8 @@ export async function getLiveValuations(assetIds: string[], opts: { force?: bool
           }
         }
       }
+      const valueForPnl = liveValueEur ?? p.valueEur;
+      const pnlEur = p.costEur !== null && p.costEur !== undefined ? valueForPnl - p.costEur : null;
       return {
         id: p.id,
         name: p.name,
@@ -319,6 +328,10 @@ export async function getLiveValuations(assetIds: string[], opts: { force?: bool
         quantity: p.quantity,
         snapshotPrice: p.price,
         snapshotValueEur: p.valueEur,
+        avgPrice: p.avgPrice ?? null,
+        costEur: p.costEur ?? null,
+        pnlEur,
+        pnlPct: pnlEur !== null && p.costEur ? pnlEur / p.costEur : null,
         livePrice: q?.price ?? null,
         liveCurrency: q?.currency ?? null,
         liveValueEur,
@@ -335,6 +348,9 @@ export async function getLiveValuations(assetIds: string[], opts: { force?: bool
     const quoted = positions.filter((p) => p.liveValueEur !== null).length;
     const quotedLive = positions.filter((p) => p.liveValueEur !== null).reduce((s, p) => s + p.liveValueEur!, 0);
     const times = positions.map((p) => p.quoteTime).filter((t): t is Date => !!t);
+    const withCost = positions.filter((p) => p.costEur !== null);
+    const costTotal = withCost.length ? withCost.reduce((s, p) => s + p.costEur!, 0) : null;
+    const unrealizedPnl = withCost.length ? withCost.reduce((s, p) => s + (p.pnlEur ?? 0), 0) : null;
     out.set(assetId, {
       assetId,
       snapshotDate: snap.date,
@@ -346,6 +362,9 @@ export async function getLiveValuations(assetIds: string[], opts: { force?: bool
       dayChangePct: quotedLive ? dayChangeEur / (quotedLive - dayChangeEur) : null,
       quoted,
       quotable,
+      costTotal,
+      unrealizedPnl,
+      unrealizedPnlPct: unrealizedPnl !== null && costTotal ? unrealizedPnl / costTotal : null,
       quotesAt: times.length ? new Date(Math.min(...times.map((t) => t.getTime()))) : null,
       error,
       positions,

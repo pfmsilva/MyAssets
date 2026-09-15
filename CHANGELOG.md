@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.3.0 — 2026-09-15
+- Ganho/perda XTB: custo de aquisição e preço médio por posição (do relatório), ganho/perda não realizado com o registo e em direto, por posição e total; coluna na visão geral.
+- Mais-valias realizadas (folha "Closed Positions" da XTB): total, ano corrente e lista de posições fechadas na página do ativo.
+
 ## 1.2.0 — 2026-09-15
 - Cotações em direto (Yahoo Finance) para as carteiras DEGIRO e XTB: valor em direto vs. último registo, variação do dia, preço atual por posição, com cache de 15 minutos e botão de atualização.
 - Mapeamento automático ISIN/ticker → símbolo Yahoo, corrigível em Administração → Cotações; links diretos para a página Yahoo de cada instrumento.

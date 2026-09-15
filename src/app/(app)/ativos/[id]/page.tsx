@@ -49,6 +49,15 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   const withPositions = asset.type === "BROKERAGE" || asset.type === "CRYPTO";
   const live = withPositions && latest?.positions.length ? (await getLiveValuations([asset.id])).get(asset.id) ?? null : null;
   const liveByPos = new Map(live?.positions.map((p) => [p.id, p]) ?? []);
+  // unrealised P/L from acquisition cost (live value when available, else the recorded value)
+  const costPositions = latest?.positions.filter((p) => p.costEur !== null) ?? [];
+  const costTotal = costPositions.reduce((s, p) => s + p.costEur!, 0);
+  const pnlTotal = costPositions.reduce((s, p) => s + ((liveByPos.get(p.id)?.liveValueEur ?? p.valueEur) - p.costEur!), 0);
+  const hasCost = costPositions.length > 0;
+  const realized = withPositions ? await prisma.realizedTrade.findMany({ where: { assetId: id }, orderBy: { closeTime: "desc" } }) : [];
+  const realizedTotal = realized.reduce((s, t) => s + t.profitEur, 0);
+  const thisYear = new Date().getUTCFullYear();
+  const realizedYear = realized.filter((t) => t.closeTime.getUTCFullYear() === thisYear).reduce((s, t) => s + t.profitEur, 0);
   const prev = series.months.length >= 2 ? series.months[series.months.length - 2].total : null;
   const chart = series.months.map((m) => ({ month: m.month, value: m.total }));
   return (
@@ -67,6 +76,12 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
             <StatTile label="Hoje" value={`${live.dayChangeEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(live.dayChangeEur), 0)}`} delta={live.dayChangePct !== null && Math.abs(live.dayChangePct) <= 1 ? live.dayChangePct : null} hint="variação do dia (cotações Yahoo)" />
           </>
         )}
+        {hasCost && (
+          <StatTile label={live && live.quoted > 0 ? "Ganho/perda (em direto)" : "Ganho/perda"} value={`${pnlTotal >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnlTotal))}`} delta={costTotal && Math.abs(pnlTotal / costTotal) <= 5 ? pnlTotal / costTotal : null} hint={`custo de aquisição ${fmtEur(costTotal, 0)}`} />
+        )}
+        {realized.length > 0 && (
+          <StatTile label="Mais-valias realizadas" value={`${realizedTotal >= 0 ? "+" : "-"}${fmtEur(Math.abs(realizedTotal))}`} hint={`${thisYear}: ${realizedYear >= 0 ? "+" : "-"}${fmtEur(Math.abs(realizedYear))} · ${realized.length} posições fechadas`} />
+        )}
         {txCount > 0 && <StatTile label="Movimentos" value={String(txCount)} />}
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -80,7 +95,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
             <div className={live ? "min-w-0" : "min-w-0 lg:col-span-2"}><Donut data={latest.positions.map((p) => ({ name: p.name, value: liveByPos.get(p.id)?.liveValueEur ?? p.valueEur }))} centerLabel={live ? "em direto" : undefined} /></div>
             <div className={live ? "min-w-0 overflow-x-auto" : "min-w-0 overflow-x-auto lg:col-span-3"}>
               <table className="table">
-                <thead><tr><th>Produto</th><th>ISIN / Ticker</th><th className="text-right">Qtd.</th><th className="text-right">Preço</th>{live && <th className="text-right">Atual</th>}{live && <th className="text-right">Hoje</th>}<th className="text-right">Valor €</th><th className="text-right">%</th></tr></thead>
+                <thead><tr><th>Produto</th><th>ISIN / Ticker</th><th className="text-right">Qtd.</th>{hasCost && <th className="text-right">Preço médio</th>}<th className="text-right">Preço</th>{live && <th className="text-right">Atual</th>}{live && <th className="text-right">Hoje</th>}<th className="text-right">Valor €</th>{hasCost && <th className="text-right">Ganho/perda</th>}<th className="text-right">%</th></tr></thead>
                 <tbody>
                   {[...latest.positions].sort((a, b) => b.valueEur - a.valueEur).map((p) => {
                     const lp = liveByPos.get(p.id);
@@ -93,10 +108,12 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
                         </td>
                         <td className="text-xs text-ink-3">{p.isin ?? ""}{lp?.symbol && lp.symbol !== p.isin ? <span className="ml-1 text-accent">{lp.symbol}</span> : null}{lp && !lp.symbol && lp.key ? <span className="ml-1 text-warn" title={lp.error ?? "sem símbolo Yahoo"}>sem cotação</span> : null}</td>
                         <td className="num text-right">{p.quantity != null ? fmtNum(p.quantity, 4) : ""}</td>
+                        {hasCost && <td className="num text-right text-ink-2">{p.avgPrice != null ? fmtNum(p.avgPrice, 3) : ""}</td>}
                         <td className="num text-right">{p.price != null ? fmtNum(p.price, 3) : ""}</td>
                         {live && <td className="num text-right">{lp?.livePrice != null ? `${fmtNum(lp.livePrice, 3)}${lp.liveCurrency && lp.liveCurrency !== "EUR" ? ` ${lp.liveCurrency}` : ""}` : ""}</td>}
                         {live && <td className={`num text-right ${lp?.dayChangePct != null ? (lp.dayChangePct >= 0 ? "text-good" : "text-bad") : ""}`}>{lp?.dayChangePct != null ? `${lp.dayChangePct >= 0 ? "+" : ""}${lp.dayChangePct.toFixed(2)} %` : ""}</td>}
                         <td className="text-right"><Money value={value} />{lp?.liveValueEur != null && Math.abs(lp.liveValueEur - p.valueEur) >= 0.5 ? <div className="text-xs"><Delta value={lp.liveValueEur - p.valueEur} pct={p.valueEur ? (lp.liveValueEur - p.valueEur) / p.valueEur : null} /></div> : null}</td>
+                        {hasCost && <td className="text-right">{p.costEur != null ? <Delta value={value - p.costEur} pct={p.costEur ? (value - p.costEur) / p.costEur : null} /> : <span className="text-ink-3">—</span>}</td>}
                         <td className="num text-right text-ink-2">{total ? ((value / total) * 100).toFixed(1) : "0"} %</td>
                       </tr>
                     );
@@ -108,6 +125,27 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
           </div>
         </Card>
       ) : null}
+      {realized.length > 0 && (
+        <Card title={`Mais-valias realizadas (${realized.length} posições fechadas · total ${realizedTotal >= 0 ? "+" : "-"}${fmtEur(Math.abs(realizedTotal))})`} className="mt-4">
+          <div className="max-h-96 overflow-auto">
+            <table className="table">
+              <thead><tr><th>Fecho</th><th>Instrumento</th><th className="text-right">Qtd.</th><th className="text-right">Abertura</th><th className="text-right">Fecho</th><th className="text-right">Resultado</th></tr></thead>
+              <tbody>
+                {realized.map((t) => (
+                  <tr key={t.id}>
+                    <td className="whitespace-nowrap text-ink-2">{fmtDate(t.closeTime)}</td>
+                    <td className="max-w-[28ch] truncate" title={t.name}>{t.name}{t.ticker ? <span className="ml-1 text-xs text-ink-3">{t.ticker}</span> : null}</td>
+                    <td className="num text-right">{t.quantity != null ? fmtNum(t.quantity, 4) : ""}</td>
+                    <td className="num text-right text-ink-2">{t.openPrice != null ? `${fmtNum(t.openPrice, 3)}${t.openTime ? ` · ${fmtDate(t.openTime)}` : ""}` : ""}</td>
+                    <td className="num text-right text-ink-2">{t.closePrice != null ? fmtNum(t.closePrice, 3) : ""}</td>
+                    <td className="text-right"><Delta value={t.profitEur} pct={t.openPrice && t.quantity ? t.profitEur / (t.openPrice * t.quantity) : null} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
       {txCount > 0 && (
         <Card title={`Movimentos (${txCount})`} className="mt-4">
           <TransactionTable rows={txs.map((t) => ({ id: t.id, date: t.date.toISOString(), description: t.description, amount: t.amount, balanceAfter: t.balanceAfter, status: t.status, categoryId: t.categoryId, assetName: asset.name, kind: t.kind }))} categories={categories} editable={editable} showAsset={false} />

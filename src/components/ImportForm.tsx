@@ -61,6 +61,7 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
             {r.rowsTotal > 0 && <li>{r.rowsNew} movimentos novos, {r.rowsExisting} já existentes (ignorados).</li>}
             {r.rowsTotal > 0 && <li>{r.categorized} categorizados automaticamente pelas regras.</li>}
             {r.positions > 0 && <li>{r.positions} posições registadas.</li>}
+            {r.realizedNew > 0 && <li>{r.realizedNew} posições fechadas (mais-valias realizadas) novas.</li>}
             {r.balance !== undefined && <li>Valor registado: {fmtEur(r.balance)} em {fmtDate(r.balanceDate!)}.</li>}
             {r.derivedSnapshots > 0 && <li>{r.derivedSnapshots} saldos de fim de mês derivados do histórico.</li>}
             {r.warnings.map((w) => <li key={w} className="text-warn">{w}</li>)}

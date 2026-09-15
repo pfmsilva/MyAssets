@@ -81,7 +81,7 @@ Sem credenciais Google, definir `AUTH_DEV_LOGIN="true"` no `.env` para um login 
 | Revolut | Extrato → CSV | movimentos (revertidos ignorados, pendentes atualizados) + saldo |
 | Banco CTT | Conta à Ordem → Movimentos → Exportar (.xlsx) | movimentos; sem saldo no ficheiro, por isso pode indicar-se o saldo atual para reconstruir os saldos mensais |
 | DEGIRO | Carteira → Exportar → XLS | posições e valor total (indicar a data) |
-| XTB | xStation → relatório de conta (.xlsx) com Open Positions + Cash Operations desde o início | posições (agregadas por ticker) + saldo em dinheiro; operações de caixa como movimentos |
+| XTB | xStation → relatório de conta (.xlsx) com Open Positions + Cash Operations (+ Closed Positions) desde o início | posições com custo de aquisição e preço médio + saldo em dinheiro; operações de caixa como movimentos; posições fechadas como mais-valias realizadas |
 
 Movimentos repetidos são detetados por hash (data, descrição, montante, saldo) e ignorados,
 por isso é seguro importar extratos sobrepostos. Cada importação pode ser anulada na página do ativo.

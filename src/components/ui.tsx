@@ -33,8 +33,8 @@ export function StatTile({ label, value, delta, hint, href }: { label: string; v
       <p className="text-xs font-medium uppercase tracking-wide text-ink-3">{label}</p>
       <p className="num mt-1 text-2xl font-semibold tracking-tight">{value}</p>
       {delta !== undefined && delta !== null && (
-        <p className={`num mt-1 text-xs font-medium ${delta >= 0 ? "text-good" : "text-bad"}`}>
-          {delta >= 0 ? "▲" : "▼"} {fmtPct(Math.abs(delta))}
+        <p className={`mt-1 text-xs font-medium ${delta >= 0 ? "text-good" : "text-bad"}`}>
+          <span className="num">{delta >= 0 ? "▲" : "▼"} {fmtPct(Math.abs(delta))}</span>
           {hint && <span className="ml-1 font-normal text-ink-3">{hint}</span>}
         </p>
       )}

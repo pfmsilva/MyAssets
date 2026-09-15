@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { ParsedImport, ParsedPosition, ParsedTransaction, parsePtNumber, readWorkbook, toIsoDate } from "./types";
+import { ParsedImport, ParsedPosition, ParsedRealizedTrade, ParsedTransaction, parsePtNumber, readWorkbook, toIsoDate } from "./types";
 
 type Row = unknown[];
 
@@ -42,8 +42,8 @@ export function parseXtb(buffer: ArrayBuffer): ParsedImport {
   if (headerIdx < 0) throw new Error('Ficheiro XTB: cabeçalho das posições (Product, Instrument/Position, Ticker, Volume, Value) não encontrado.');
   const h = open[headerIdx].map(str);
   const col = (re: RegExp) => h.findIndex((c) => re.test(c));
-  const cProduct = col(/^Product$/i), cName = col(/^Instrument/i), cTicker = col(/^Ticker$/i), cCat = col(/^Category$/i), cType = col(/^Type$/i), cVol = col(/^Volume$/i), cVal = col(/^Value$/i), cOpen = col(/^Open price$/i);
-  const byTicker = new Map<string, { name: string; ticker: string; category: string; volume: number; value: number; products: Set<string> }>();
+  const cProduct = col(/^Product$/i), cName = col(/^Instrument/i), cTicker = col(/^Ticker$/i), cCat = col(/^Category$/i), cType = col(/^Type$/i), cVol = col(/^Volume$/i), cVal = col(/^Value$/i), cOpen = col(/^Open price$/i), cNet = col(/^Net Profit$/i), cGross = col(/^Gross Profit$/i);
+  const byTicker = new Map<string, { name: string; ticker: string; category: string; volume: number; value: number; openCost: number; netProfit: number; hasProfit: boolean; products: Set<string> }>();
   for (let i = headerIdx + 1; i < open.length; i++) {
     const r = open[i];
     const name = str(r[cName]);
@@ -53,13 +53,19 @@ export function parseXtb(buffer: ArrayBuffer): ParsedImport {
     if (/^\d+$/.test(name)) continue;
     const volume = parsePtNumber(r[cVol]) ?? 0;
     const value = parsePtNumber(r[cVal]) ?? 0;
-    const cur = byTicker.get(ticker) ?? { name, ticker, category: str(r[cCat]), volume: 0, value: 0, products: new Set<string>() };
+    const cur = byTicker.get(ticker) ?? { name, ticker, category: str(r[cCat]), volume: 0, value: 0, openCost: 0, netProfit: 0, hasProfit: false, products: new Set<string>() };
     cur.volume += volume;
     cur.value += value;
+    const openPrice = cOpen >= 0 ? parsePtNumber(r[cOpen]) : undefined;
+    if (openPrice !== undefined) cur.openCost += volume * openPrice;
+    const net = cNet >= 0 ? parsePtNumber(r[cNet]) : cGross >= 0 ? parsePtNumber(r[cGross]) : undefined;
+    if (net !== undefined) {
+      cur.netProfit += net;
+      cur.hasProfit = true;
+    }
     cur.products.add(str(r[cProduct]));
     byTicker.set(ticker, cur);
   }
-  void cOpen;
   const positions: ParsedPosition[] = [...byTicker.values()]
     .map((p) => ({
       name: p.name,
@@ -69,6 +75,8 @@ export function parseXtb(buffer: ArrayBuffer): ParsedImport {
       currency: "EUR",
       value: Math.round(p.value * 100) / 100,
       valueEur: Math.round(p.value * 100) / 100,
+      avgPrice: p.volume && p.openCost ? Math.round((p.openCost / p.volume) * 1e4) / 1e4 : undefined,
+      costEur: p.hasProfit ? Math.round((p.value - p.netProfit) * 100) / 100 : undefined,
     }))
     .sort((a, b) => b.valueEur - a.valueEur);
   if (!positions.length) warnings.push("Nenhuma posição aberta encontrada.");
@@ -125,6 +133,40 @@ export function parseXtb(buffer: ArrayBuffer): ParsedImport {
     warnings.push(`Saldo em dinheiro calculado a partir das operações de caixa: ${cashBalance.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}. Confirme na app XTB.`);
   }
 
+  // ---------- Closed positions (realised gains) ----------
+  const realized: ParsedRealizedTrade[] = [];
+  const closed = sheetRows(wb, "Closed Positions");
+  if (closed) {
+    const hi = closed.findIndex((r) => str(r[0]) === "Instrument" && r.some((c) => /^Close Time/i.test(str(c))) && r.some((c) => /^Profit/i.test(str(c))));
+    if (hi >= 0) {
+      const ch = closed[hi].map(str);
+      const cc = (re: RegExp) => ch.findIndex((c) => re.test(c));
+      const kName = cc(/^Instrument$/i), kTicker = cc(/^Ticker$/i), kVol = cc(/^Volume$/i), kOpenP = cc(/^Open Price$/i), kOpenT = cc(/^Open Time/i), kCloseP = cc(/^Close Price$/i), kCloseT = cc(/^Close Time/i), kPl = cc(/^Profit\/Loss$/i), kGross = cc(/^Gross Profit$/i), kComm = cc(/^Commission$/i), kPos = cc(/^Position ID$/i);
+      for (let i = hi + 1; i < closed.length; i++) {
+        const r = closed[i];
+        const name = str(r[kName]);
+        const closeTime = cellDate(r[kCloseT]);
+        const profit = parsePtNumber(r[kPl]);
+        if (!name || /^Profit\/loss$/i.test(name) || !closeTime || profit === undefined) continue;
+        const volume = parsePtNumber(r[kVol]);
+        const posId = str(r[kPos]).replace(/\.0+$/, "");
+        realized.push({
+          externalId: `${posId || name}|${closeTime.toISOString()}|${volume ?? ""}`,
+          name,
+          ticker: str(r[kTicker]) || undefined,
+          quantity: volume,
+          openPrice: parsePtNumber(r[kOpenP]),
+          closePrice: parsePtNumber(r[kCloseP]),
+          openTime: cellDate(r[kOpenT])?.toISOString(),
+          closeTime: closeTime.toISOString(),
+          profitEur: profit,
+          grossEur: kGross >= 0 ? parsePtNumber(r[kGross]) : undefined,
+          commission: kComm >= 0 ? parsePtNumber(r[kComm]) : undefined,
+        });
+      }
+    }
+  }
+
   const balance = Math.round(positions.reduce((s, p) => s + p.valueEur, 0) * 100) / 100;
-  return { source: "xtb", transactions, positions, balance, balanceDate: reportDate ? toIsoDate(reportDate) : undefined, meta, warnings };
+  return { source: "xtb", transactions, positions, realized, balance, balanceDate: reportDate ? toIsoDate(reportDate) : undefined, meta, warnings };
 }

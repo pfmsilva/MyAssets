@@ -11,6 +11,7 @@ export type ImportResult = {
   rowsNew: number;
   rowsExisting: number;
   positions: number;
+  realizedNew: number;
   balance?: number;
   balanceDate?: string;
   derivedSnapshots: number;
@@ -115,9 +116,19 @@ export async function runImport(opts: {
     if (parsed.positions.length) {
       await prisma.position.deleteMany({ where: { snapshotId: snap.id } });
       await prisma.position.createMany({
-        data: parsed.positions.map((p) => ({ snapshotId: snap.id, name: p.name, isin: p.isin ?? null, quantity: p.quantity ?? null, price: p.price ?? null, currency: p.currency, value: p.value ?? null, valueEur: p.valueEur })),
+        data: parsed.positions.map((p) => ({ snapshotId: snap.id, name: p.name, isin: p.isin ?? null, quantity: p.quantity ?? null, price: p.price ?? null, currency: p.currency, value: p.value ?? null, valueEur: p.valueEur, avgPrice: p.avgPrice ?? null, costEur: p.costEur ?? null })),
       });
     }
+  }
+
+  // ---- realised trades ----
+  let realizedNew = 0;
+  if (parsed.realized?.length) {
+    const r = await prisma.realizedTrade.createMany({
+      data: parsed.realized.map((t) => ({ assetId: asset.id, externalId: t.externalId, name: t.name, ticker: t.ticker ?? null, quantity: t.quantity ?? null, openPrice: t.openPrice ?? null, closePrice: t.closePrice ?? null, openTime: t.openTime ? new Date(t.openTime) : null, closeTime: new Date(t.closeTime), profitEur: t.profitEur, grossEur: t.grossEur ?? null, commission: t.commission ?? null, importBatchId: batch.id })),
+      skipDuplicates: true,
+    });
+    realizedNew = r.count;
   }
 
   // ---- derived month-end snapshots from running balances (history for free) ----
@@ -150,6 +161,7 @@ export async function runImport(opts: {
     rowsNew,
     rowsExisting: parsed.transactions.length - rowsNew,
     positions: parsed.positions.length,
+    realizedNew,
     balance: parsed.balance,
     balanceDate: parsed.balance !== undefined ? balanceDate : undefined,
     derivedSnapshots,

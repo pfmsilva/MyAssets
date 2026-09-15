@@ -19,12 +19,29 @@ export type ParsedPosition = {
   currency: string;
   value?: number;
   valueEur: number;
+  avgPrice?: number; // average purchase price (instrument currency)
+  costEur?: number; // acquisition cost in EUR
+};
+
+export type ParsedRealizedTrade = {
+  externalId: string;
+  name: string;
+  ticker?: string;
+  quantity?: number;
+  openPrice?: number;
+  closePrice?: number;
+  openTime?: string; // ISO datetime
+  closeTime: string; // ISO datetime
+  profitEur: number;
+  grossEur?: number;
+  commission?: number;
 };
 
 export type ParsedImport = {
   source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb";
   transactions: ParsedTransaction[];
   positions: ParsedPosition[];
+  realized?: ParsedRealizedTrade[];
   balance?: number; // total value of the account at balanceDate
   balanceDate?: string;
   meta: Record<string, string>;
