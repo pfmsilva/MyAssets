@@ -10,7 +10,7 @@ import { TYPE_COLORS } from "@/components/charts/theme";
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ forbidden?: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { forbidden } = await searchParams;
   const [values, series] = await Promise.all([getCurrentValues(), getNetWorthSeries()]);
   const total = values.reduce((s, a) => s + a.value, 0);
@@ -30,6 +30,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Visão geral" subtitle={latest ? `Última atualização: ${fmtDate(latest.date!)} (${latest.name})` : "Ainda sem valores registados"} />
       {forbidden && <div className="mb-4"><Alert kind="error">Não tem permissão para essa área.</Alert></div>}
+      {values.length === 0 && (
+        <div className="mb-4">
+          <Alert>
+            Ainda não há ativos configurados.{" "}
+            {user.role === "ADMIN" ? <Link href="/admin/ativos" className="underline">Criar dados iniciais em Administração → Ativos</Link> : "Peça ao administrador para configurar a aplicação."}
+          </Alert>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Património total" value={fmtEur(total, 0)} delta={delta} hint={deltaHint} />
         <StatTile label="Investimentos" value={fmtEur(values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0), 0)} hint="carteiras + cripto" />

@@ -5,6 +5,7 @@ import { Badge, Card } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { deleteAsset, upsertAsset } from "@/app/actions/admin";
+import { SeedButton } from "@/components/SeedButton";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,13 @@ export default async function AssetsAdmin() {
   );
   return (
     <div className="space-y-4">
-      <Card title="Ativos e contas">
+      {assets.length === 0 && (
+        <Card title="Começar">
+          <p className="mb-3 text-sm text-ink-2">Ainda não há ativos. Cria o conjunto inicial (5 membros da família, 9 ativos: BPI, Revolut, CTT, PPR Optimize, PPR Save and Grow, DEGIRO, XTB, Binance e dinheiro em casa, 17 categorias de despesa com regras) e ajusta depois nomes e titularidades.</p>
+          <SeedButton />
+        </Card>
+      )}
+      <Card title="Ativos e contas" action={assets.length > 0 ? <SeedButton compact /> : undefined}>
         <ul className="divide-y divide-border/60">
           {assets.map((a) => (
             <li key={a.id} className="py-3">

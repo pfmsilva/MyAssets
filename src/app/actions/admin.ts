@@ -4,6 +4,7 @@ import { AssetType, CategoryKind, Role } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/access";
+import { runSeed } from "@/lib/seed";
 
 export type ActionState = { ok?: boolean; error?: string };
 
@@ -106,4 +107,16 @@ export async function deleteRule(id: string) {
   await assertRole("EDITOR");
   await prisma.categoryRule.delete({ where: { id } });
   revalidatePath("/", "layout");
+}
+
+// ---- initial data ----
+export async function seedInitialData(): Promise<ActionState & { created?: Awaited<ReturnType<typeof runSeed>> }> {
+  try {
+    await assertRole("ADMIN");
+    const created = await runSeed(prisma);
+    revalidatePath("/", "layout");
+    return { ok: true, created };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro." };
+  }
 }
