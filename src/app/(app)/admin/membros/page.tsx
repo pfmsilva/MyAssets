@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { logView } from "@/lib/activity";
 import { Card } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -7,6 +9,8 @@ import { deleteMember, upsertMember } from "@/app/actions/admin";
 export const dynamic = "force-dynamic";
 
 export default async function MembersAdmin() {
+  const session = await auth();
+  if (session?.user) logView(session.user, "Admin · Família");
   const members = await prisma.member.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { ownerships: true, viewers: true } } } });
   const renderFields = (m?: (typeof members)[number]) => (
     <div className="grid gap-3 sm:grid-cols-3">

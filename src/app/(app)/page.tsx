@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { getScope } from "@/lib/scope";
 import { byMember, getCurrentValues, getNetWorthSeries, groupBy } from "@/lib/analytics";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, isStale } from "@/lib/format";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ forbidden?: string }> }) {
   const user = await requireUser();
   const { forbidden } = await searchParams;
+  logView(user, "Visão geral");
   const scope = await getScope(user);
   const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds })]);
   const total = values.reduce((s, a) => s + a.value, 0);

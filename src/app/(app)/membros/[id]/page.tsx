@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { canSeeMember, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getCurrentValues, getNetWorthSeries, groupBy } from "@/lib/analytics";
@@ -18,6 +19,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   const scope = await getScope(user);
   const member = await prisma.member.findUnique({ where: { id } });
   if (!member || !canSeeMember(scope, id)) notFound();
+  logView(user, "Membro", { member: member.name });
   const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ memberId: id, assetIds: scope.assetIds })]);
   const mine = values
     .map((a) => ({ ...a, share: (a.owners.find((o) => o.memberId === id)?.percent ?? 0) / 100 }))

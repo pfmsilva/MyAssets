@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/access";
 import { canSeeAsset, getScope } from "@/lib/scope";
+import { logActivity } from "@/lib/activity";
 
 const positionSchema = z.object({
   name: z.string().trim().min(1),
@@ -45,6 +46,8 @@ export async function createSnapshot(_prev: ActionState, fd: FormData): Promise<
           data: data.positions.map((p) => ({ snapshotId: snap.id, name: p.name, isin: p.isin || null, quantity: p.quantity ?? null, price: p.price ?? null, currency: p.currency || "EUR", valueEur: p.valueEur, value: p.currency && p.currency !== "EUR" ? null : p.valueEur })),
         });
     }
+    const asset = await prisma.asset.findUnique({ where: { id: data.assetId }, select: { name: true } });
+    await logActivity(user, "snapshot.create", { entity: "asset", entityId: data.assetId, details: { asset: asset?.name, date: data.date, value, positions: data.positions?.length ?? 0 } });
     revalidatePath("/", "layout");
     return { ok: true, message: "Valor registado." };
   } catch (e) {
@@ -54,8 +57,9 @@ export async function createSnapshot(_prev: ActionState, fd: FormData): Promise<
 
 export async function deleteSnapshot(id: string) {
   const user = await assertRole("EDITOR");
-  const snap = await prisma.snapshot.findUniqueOrThrow({ where: { id }, select: { assetId: true } });
+  const snap = await prisma.snapshot.findUniqueOrThrow({ where: { id }, select: { assetId: true, date: true, value: true, asset: { select: { name: true } } } });
   if (!canSeeAsset(await getScope(user), snap.assetId)) throw new Error("Sem permissão para este ativo.");
   await prisma.snapshot.delete({ where: { id } });
+  await logActivity(user, "snapshot.delete", { entity: "asset", entityId: snap.assetId, details: { asset: snap.asset.name, date: snap.date.toISOString().slice(0, 10), value: snap.value } });
   revalidatePath("/", "layout");
 }

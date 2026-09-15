@@ -7,6 +7,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Perfis de utilizador**: Administração, Atualização, Consulta (login Google). Cada utilizador pode ser
   associado a um ou mais membros da família e, nesse caso, só vê os ativos, movimentos e dashboards
   desses membros (administradores veem sempre tudo).
+- **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
+  categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
+  utilizador, tipo, datas e texto.
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
 - **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls).

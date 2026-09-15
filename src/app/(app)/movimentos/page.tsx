@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { hasRole, requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { assetScopeWhere, canSeeAsset, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { Card, PageHeader } from "@/components/ui";
@@ -17,6 +18,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const pageN = Math.max(1, Number(sp.page) || 1);
   const take = 100;
+  logView(user, "Movimentos", { q: sp.q ?? null, asset: sp.asset ?? null, category: sp.category ?? null, month: sp.month ?? null, page: pageN });
   const scope = await getScope(user);
   const where: Prisma.TransactionWhereInput = scope.all ? {} : { assetId: { in: scope.assetIds } };
   if (sp.q) where.description = { contains: sp.q, mode: "insensitive" };

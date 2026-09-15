@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/access";
 import { canSeeAsset, getScope } from "@/lib/scope";
+import { logActivity } from "@/lib/activity";
 import { ImportResult, runImport } from "@/lib/import-service";
 import { IMPORTERS, ImporterKey } from "@/lib/importers";
 
@@ -24,6 +25,7 @@ export async function importFile(_prev: ImportState, fd: FormData): Promise<Impo
     if (!(file instanceof File) || file.size === 0) return { error: "Escolha um ficheiro." };
     if (file.size > 15 * 1024 * 1024) return { error: "Ficheiro demasiado grande (máx. 15 MB)." };
     const result = await runImport({ assetId, importer, fileName: file.name, buffer: await file.arrayBuffer(), snapshotDate, currentBalance, userId: user.id });
+    await logActivity(user, "import.run", { entity: "asset", entityId: assetId, details: { file: file.name, importer, rowsNew: result.rowsNew, rowsExisting: result.rowsExisting, positions: result.positions, balance: result.balance ?? null, batchId: result.batchId } });
     revalidatePath("/", "layout");
     return { result };
   } catch (e) {
@@ -33,8 +35,9 @@ export async function importFile(_prev: ImportState, fd: FormData): Promise<Impo
 
 export async function deleteImportBatch(id: string) {
   const user = await assertRole("EDITOR");
-  const batch = await prisma.importBatch.findUniqueOrThrow({ where: { id }, select: { assetId: true } });
+  const batch = await prisma.importBatch.findUniqueOrThrow({ where: { id }, select: { assetId: true, fileName: true, rowsNew: true, asset: { select: { name: true } } } });
   if (!canSeeAsset(await getScope(user), batch.assetId)) throw new Error("Sem permissão para este ativo.");
   await prisma.importBatch.delete({ where: { id } });
+  await logActivity(user, "import.delete", { entity: "asset", entityId: batch.assetId, details: { asset: batch.asset.name, file: batch.fileName, rows: batch.rowsNew } });
   revalidatePath("/", "layout");
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { getScope, memberScopeWhere } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { byMember, getCurrentValues } from "@/lib/analytics";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MembersPage() {
   const user = await requireUser();
+  logView(user, "Família");
   const scope = await getScope(user);
   const [values, members] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), prisma.member.findMany({ where: memberScopeWhere(scope), orderBy: { sortOrder: "asc" } })]);
   const totals = byMember(values);

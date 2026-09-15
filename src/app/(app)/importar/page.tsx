@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { assetIdScopeWhere, assetScopeWhere, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { IMPORTERS } from "@/lib/importers";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function ImportPage({ searchParams }: { searchParams: Promise<{ asset?: string }> }) {
   const user = await requireUser("EDITOR");
   const { asset } = await searchParams;
+  logView(user, "Importar");
   const scope = await getScope(user);
   const [assets, batches] = await Promise.all([
     prisma.asset.findMany({ where: { active: true, ...assetScopeWhere(scope) }, orderBy: [{ importer: "asc" }, { sortOrder: "asc" }] }),

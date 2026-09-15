@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasRole, requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { assertAssetVisible, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtNum } from "@/lib/format";
@@ -33,6 +34,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   });
   if (!asset) notFound();
   const pageN = Math.max(1, Number(page) || 1);
+  logView(user, "Ativo", { asset: asset.name, page: pageN });
   const take = 50;
   const [txs, txCount, categories, series] = await Promise.all([
     prisma.transaction.findMany({ where: { assetId: id }, orderBy: [{ date: "desc" }, { seq: "desc" }], skip: (pageN - 1) * take, take }),

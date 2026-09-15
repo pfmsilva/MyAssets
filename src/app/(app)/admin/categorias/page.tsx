@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { logView } from "@/lib/activity";
 import { CATEGORY_KIND_LABEL } from "@/lib/format";
 import { Card } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
@@ -9,6 +11,8 @@ import { reapplyRules } from "@/app/actions/transactions";
 export const dynamic = "force-dynamic";
 
 export default async function CategoriesAdmin() {
+  const session = await auth();
+  if (session?.user) logView(session.user, "Admin · Categorias");
   const categories = await prisma.category.findMany({ orderBy: [{ kind: "asc" }, { sortOrder: "asc" }], include: { rules: { orderBy: { priority: "desc" } }, _count: { select: { transactions: true } } } });
   const renderCatFields = (c?: (typeof categories)[number]) => (
     <div className="grid gap-3 sm:grid-cols-3">

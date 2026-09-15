@@ -53,6 +53,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   importBatches ImportBatch[]
+  activities    ActivityLog[]
   createdAt     DateTime  @default(now())
 }
 
@@ -216,4 +217,23 @@ model ImportBatch {
   snapshots    Snapshot[]
   transactions Transaction[]
   createdAt    DateTime      @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String?
+  userEmail String
+  userName  String?
+  action    String
+  entity    String?
+  entityId  String?
+  details   Json?
+  ip        String?
+  userAgent String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userEmail, createdAt])
+  @@index([action, createdAt])
 }

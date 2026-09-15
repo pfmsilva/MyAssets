@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logView } from "@/lib/activity";
 import { ROLE_LABEL } from "@/lib/access";
 import { auth } from "@/auth";
 import { Card } from "@/components/ui";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function UsersAdmin() {
   const session = await auth();
+  if (session?.user) logView(session.user, "Admin · Utilizadores");
   const [users, members] = await Promise.all([prisma.user.findMany({ orderBy: { createdAt: "asc" }, include: { visibleMembers: true } }), prisma.member.findMany({ orderBy: { sortOrder: "asc" } })]);
   const roles = Object.entries(ROLE_LABEL);
   const renderFields = (u?: (typeof users)[number]) => (

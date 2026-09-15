@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { getScope } from "@/lib/scope";
 import { getCurrentValues } from "@/lib/analytics";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur } from "@/lib/format";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AssetsPage() {
   const user = await requireUser();
+  logView(user, "Ativos");
   const scope = await getScope(user);
   const values = await getCurrentValues({ assetIds: scope.assetIds });
   const total = values.reduce((s, a) => s + a.value, 0);

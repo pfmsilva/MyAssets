@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { getScope, memberScopeWhere } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getNetWorthSeries } from "@/lib/analytics";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ by?: string; range?: string }> }) {
   const user = await requireUser();
   const { by = "type", range = "24" } = await searchParams;
+  logView(user, "Evolução", { by, range });
   const scope = await getScope(user);
   const [series, members] = await Promise.all([getNetWorthSeries({ assetIds: scope.assetIds }), prisma.member.findMany({ where: memberScopeWhere(scope), orderBy: { sortOrder: "asc" } })]);
   const n = range === "all" ? series.months.length : Number(range);

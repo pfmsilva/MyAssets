@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { logView } from "@/lib/activity";
 import { ASSET_TYPE_LABEL } from "@/lib/format";
 import { IMPORTERS } from "@/lib/importers";
 import { Badge, Card } from "@/components/ui";
@@ -10,6 +12,8 @@ import { SeedButton } from "@/components/SeedButton";
 export const dynamic = "force-dynamic";
 
 export default async function AssetsAdmin() {
+  const session = await auth();
+  if (session?.user) logView(session.user, "Admin · Ativos");
   const [assets, members] = await Promise.all([
     prisma.asset.findMany({ orderBy: { sortOrder: "asc" }, include: { ownerships: { include: { member: true } }, _count: { select: { snapshots: true, transactions: true } } } }),
     prisma.member.findMany({ orderBy: { sortOrder: "asc" } }),

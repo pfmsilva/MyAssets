@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { logView } from "@/lib/activity";
 import { assetScopeWhere, canSeeAsset, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getExpenseSeries, getNetWorthSeries } from "@/lib/analytics";
@@ -16,6 +17,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const scope = await getScope(user);
   const asset = assetParam && canSeeAsset(scope, assetParam) ? assetParam : "";
   const n = Number(months) || 12;
+  logView(user, "Despesas", { months: n, asset: asset || null });
   const [exp, nw, assets] = await Promise.all([getExpenseSeries({ months: n, assetId: asset || undefined, assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds }), prisma.asset.findMany({ where: { type: "CURRENT_ACCOUNT", active: true, ...assetScopeWhere(scope) }, orderBy: { sortOrder: "asc" } })]);
   const cats = exp.categories;
   const top = cats.slice(0, 8).map((c) => c.name);
