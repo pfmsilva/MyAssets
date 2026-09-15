@@ -89,7 +89,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
                     return (
                       <tr key={p.id}>
                         <td className="max-w-[22ch] truncate" title={p.name}>
-                          {lp?.yahooUrl ? <a href={lp.yahooUrl} target="_blank" rel="noopener" className="hover:underline" title={`Ver ${lp.symbol} no Yahoo Finance`}>{p.name} ↗</a> : p.name}
+                          {lp?.yahooUrl ? <a href={lp.yahooUrl} target="_blank" rel="noopener" className="flex items-center gap-1 hover:underline" title={`Ver ${lp.symbol} no Yahoo Finance`}><span className="truncate">{p.name}</span><span className="shrink-0 text-accent">↗</span></a> : p.name}
                         </td>
                         <td className="text-xs text-ink-3">{p.isin ?? ""}{lp?.symbol && lp.symbol !== p.isin ? <span className="ml-1 text-accent">{lp.symbol}</span> : null}{lp && !lp.symbol && lp.key ? <span className="ml-1 text-warn" title={lp.error ?? "sem símbolo Yahoo"}>sem cotação</span> : null}</td>
                         <td className="num text-right">{p.quantity != null ? fmtNum(p.quantity, 4) : ""}</td>
