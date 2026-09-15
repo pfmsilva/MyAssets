@@ -12,19 +12,34 @@ for (const file of [".env.local", ".env"]) {
   }
 }
 
-const e = process.env;
-const candidates = [e.DATABASE_URL_UNPOOLED, e.POSTGRES_URL_NON_POOLING, e.DIRECT_URL, e.DATABASE_URL, e.POSTGRES_PRISMA_URL, e.POSTGRES_URL];
-const url = candidates.find((v) => v && v.trim() !== "")?.trim();
-
-if (!url) {
+const POOLED = ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"];
+const DIRECT = ["DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING", "DIRECT_URL"];
+const ALL = [...POOLED, ...DIRECT];
+// Same selection logic as src/lib/db-url.ts (keep in sync): one prefix, chosen deterministically.
+const entries = Object.entries(process.env).filter(([, v]) => v && v.trim() !== "");
+const candidates = entries.flatMap(([k, v]) => {
+  const suffix = ALL.find((n) => k === n || k.endsWith("_" + n));
+  return suffix ? [{ key: k, value: v.trim(), suffix, prefix: k === suffix ? "" : k.slice(0, -suffix.length - 1) }] : [];
+});
+if (!candidates.length) {
   console.error(`
 ✖ Nenhuma connection string de Postgres encontrada.
   Defina DATABASE_URL (Vercel → Settings → Environment Variables) para Production, Preview e Development,
   ou ligue a base de dados Neon ao projeto (Vercel → Storage → Connect Project) nos mesmos ambientes.
-  Variáveis aceites: DATABASE_URL, DATABASE_URL_UNPOOLED, POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING.
+  Variáveis aceites (com ou sem prefixo, ex. peculio_DATABASE_URL): DATABASE_URL, DATABASE_URL_UNPOOLED,
+  POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING.
 `);
   process.exit(1);
 }
+const prefixes = [...new Set(candidates.map((c) => c.prefix))].sort((a, b) => (a === "" ? -1 : b === "" ? 1 : a.localeCompare(b)));
+const prefix = prefixes[0];
+let found;
+for (const name of [...DIRECT, ...POOLED]) {
+  found = candidates.find((c) => c.prefix === prefix && c.suffix === name);
+  if (found) break;
+}
+const url = found.value;
+console.log(`→ Migrações com a variável ${found.key}${prefixes.length > 1 ? ` (atenção: existem várias bases configuradas: ${prefixes.map((p) => p || "(sem prefixo)").join(", ")}; a app usa sempre "${prefix || "(sem prefixo)"}")` : ""}`);
 
-const r = spawnSync("npx", ["prisma", "migrate", "deploy"], { stdio: "inherit", env: { ...e, DATABASE_URL: url }, shell: process.platform === "win32" });
+const r = spawnSync("npx", ["prisma", "migrate", "deploy"], { stdio: "inherit", env: { ...process.env, DATABASE_URL: url }, shell: process.platform === "win32" });
 process.exit(r.status ?? 1);

@@ -23,7 +23,8 @@ Auth.js v5 (Google) · Recharts · SheetJS.
 
 1. **Base de dados**: no Vercel, **Storage → Create Database → Neon** (a integração cria a BD e injeta
    `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `POSTGRES_URL`, … no projeto; confirmar que fica ligada a
-   Production **e** Preview). Em alternativa, criar em https://neon.tech e definir `DATABASE_URL` à mão.
+   Production **e** Preview). Se a integração usar um prefixo (ex. `peculio_DATABASE_URL`), a app aceita-o;
+   mas mantém só **uma** base ligada ao projeto e apaga variáveis `DATABASE_URL` vazias criadas à mão. Em alternativa, criar em https://neon.tech e definir `DATABASE_URL` à mão.
 2. **Google OAuth**: em https://console.cloud.google.com/apis/credentials criar
    "OAuth client ID" (tipo Web application) com:
    - Authorized JavaScript origins: `https://<a-tua-app>.vercel.app`
