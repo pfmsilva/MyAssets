@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/access";
+import { canSeeMember, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getCurrentValues, getNetWorthSeries, groupBy } from "@/lib/analytics";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur } from "@/lib/format";
@@ -12,11 +13,12 @@ import { TYPE_COLORS } from "@/components/charts/theme";
 export const dynamic = "force-dynamic";
 
 export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
+  const scope = await getScope(user);
   const member = await prisma.member.findUnique({ where: { id } });
-  if (!member) notFound();
-  const [values, series] = await Promise.all([getCurrentValues(), getNetWorthSeries({ memberId: id })]);
+  if (!member || !canSeeMember(scope, id)) notFound();
+  const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ memberId: id, assetIds: scope.assetIds })]);
   const mine = values
     .map((a) => ({ ...a, share: (a.owners.find((o) => o.memberId === id)?.percent ?? 0) / 100 }))
     .filter((a) => a.share > 0)

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { getScope } from "@/lib/scope";
 import { getCurrentValues } from "@/lib/analytics";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur } from "@/lib/format";
 import { Badge, Card, Money, PageHeader } from "@/components/ui";
@@ -8,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AssetsPage() {
   const user = await requireUser();
-  const values = await getCurrentValues();
+  const scope = await getScope(user);
+  const values = await getCurrentValues({ assetIds: scope.assetIds });
   const total = values.reduce((s, a) => s + a.value, 0);
   const groups = Object.entries(
     values.reduce<Record<string, typeof values>>((acc, a) => {

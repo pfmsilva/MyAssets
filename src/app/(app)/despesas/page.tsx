@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { assetScopeWhere, canSeeAsset, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getExpenseSeries, getNetWorthSeries } from "@/lib/analytics";
 import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
@@ -10,10 +11,12 @@ import { Donut } from "@/components/charts/Donut";
 export const dynamic = "force-dynamic";
 
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ months?: string; asset?: string }> }) {
-  await requireUser();
-  const { months = "12", asset = "" } = await searchParams;
+  const user = await requireUser();
+  const { months = "12", asset: assetParam = "" } = await searchParams;
+  const scope = await getScope(user);
+  const asset = assetParam && canSeeAsset(scope, assetParam) ? assetParam : "";
   const n = Number(months) || 12;
-  const [exp, nw, assets] = await Promise.all([getExpenseSeries({ months: n, assetId: asset || undefined }), getNetWorthSeries(), prisma.asset.findMany({ where: { type: "CURRENT_ACCOUNT", active: true }, orderBy: { sortOrder: "asc" } })]);
+  const [exp, nw, assets] = await Promise.all([getExpenseSeries({ months: n, assetId: asset || undefined, assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds }), prisma.asset.findMany({ where: { type: "CURRENT_ACCOUNT", active: true, ...assetScopeWhere(scope) }, orderBy: { sortOrder: "asc" } })]);
   const cats = exp.categories;
   const top = cats.slice(0, 8).map((c) => c.name);
   const barData = exp.months.map((m) => {

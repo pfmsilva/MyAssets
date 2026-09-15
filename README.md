@@ -4,7 +4,11 @@ Aplicação web (desktop e mobile) para controlar o património financeiro da fa
 contas à ordem (BPI, Revolut, CTT), PPR (Optimize, Save and Grow), carteiras de
 investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 
-- **Perfis de utilizador**: Administração, Atualização, Consulta (login Google).
+- **Perfis de utilizador**: Administração, Atualização, Consulta (login Google). Cada utilizador pode ser
+  associado a um ou mais membros da família e, nesse caso, só vê os ativos, movimentos e dashboards
+  desses membros (administradores veem sempre tudo).
+- **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
+  membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
 - **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), carteira DEGIRO (.xls).
 - **Registo manual** de valores (e posições) para os restantes ativos.
 - **Histórico** completo: todos os valores importados/registados ficam guardados; os extratos

@@ -7,7 +7,7 @@ import { deleteMember, upsertMember } from "@/app/actions/admin";
 export const dynamic = "force-dynamic";
 
 export default async function MembersAdmin() {
-  const members = await prisma.member.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { ownerships: true, users: true } } } });
+  const members = await prisma.member.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { ownerships: true, viewers: true } } } });
   const renderFields = (m?: (typeof members)[number]) => (
     <div className="grid gap-3 sm:grid-cols-3">
       {m && <input type="hidden" name="id" value={m.id} />}
@@ -25,7 +25,7 @@ export default async function MembersAdmin() {
               <div className="flex items-center gap-3">
                 <span className="h-4 w-4 rounded-full" style={{ background: m.color }} />
                 <span className="flex-1 font-medium">{m.name}</span>
-                <span className="text-xs text-ink-3">{m._count.ownerships} ativo(s) · {m._count.users} utilizador(es)</span>
+                <span className="text-xs text-ink-3">{m._count.ownerships} ativo(s) · {m._count.viewers} utilizador(es)</span>
                 <details className="text-right">
                   <summary className="btn btn-sm cursor-pointer list-none">editar</summary>
                   <div className="mt-2 rounded-lg border border-border p-3 text-left">

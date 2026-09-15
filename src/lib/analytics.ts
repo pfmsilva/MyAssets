@@ -13,9 +13,9 @@ export type AssetValue = {
 };
 
 /** Latest snapshot value per active asset. */
-export async function getCurrentValues(): Promise<AssetValue[]> {
+export async function getCurrentValues(opts: { assetIds?: string[] } = {}): Promise<AssetValue[]> {
   const assets = await prisma.asset.findMany({
-    where: { active: true },
+    where: { active: true, ...(opts.assetIds ? { id: { in: opts.assetIds } } : {}) },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     include: {
       ownerships: { include: { member: true } },
@@ -70,9 +70,13 @@ function monthsBetween(from: string, to: string) {
 }
 
 /** Monthly net worth series: for each month, the latest snapshot of each asset up to month end (carried forward). */
-export async function getNetWorthSeries(opts: { memberId?: string; assetId?: string } = {}): Promise<{ months: MonthPoint[]; assets: { id: string; name: string; type: string }[] }> {
+export async function getNetWorthSeries(opts: { memberId?: string; assetId?: string; assetIds?: string[] } = {}): Promise<{ months: MonthPoint[]; assets: { id: string; name: string; type: string }[] }> {
   const assets = await prisma.asset.findMany({
-    where: { active: true, ...(opts.assetId ? { id: opts.assetId } : {}), ...(opts.memberId ? { ownerships: { some: { memberId: opts.memberId } } } : {}) },
+    where: {
+      active: true,
+      ...(opts.assetId ? { id: opts.assetId } : opts.assetIds ? { id: { in: opts.assetIds } } : {}),
+      ...(opts.memberId ? { ownerships: { some: { memberId: opts.memberId } } } : {}),
+    },
     include: { ownerships: true, snapshots: { orderBy: { date: "asc" }, select: { date: true, value: true } } },
     orderBy: { sortOrder: "asc" },
   });
@@ -114,13 +118,13 @@ export type MonthExpense = {
 };
 
 /** Monthly income / expense / savings from categorized transactions. */
-export async function getExpenseSeries(opts: { assetId?: string; months?: number } = {}) {
+export async function getExpenseSeries(opts: { assetId?: string; assetIds?: string[]; months?: number } = {}) {
   const since = new Date();
   since.setUTCDate(1);
   since.setUTCMonth(since.getUTCMonth() - ((opts.months ?? 24) - 1));
   since.setUTCHours(0, 0, 0, 0);
   const txs = await prisma.transaction.findMany({
-    where: { date: { gte: since }, status: "COMPLETED", ...(opts.assetId ? { assetId: opts.assetId } : {}), asset: { active: true } },
+    where: { date: { gte: since }, status: "COMPLETED", ...(opts.assetId ? { assetId: opts.assetId } : opts.assetIds ? { assetId: { in: opts.assetIds } } : {}), asset: { active: true } },
     select: { date: true, amount: true, categoryId: true, category: { select: { name: true, kind: true, color: true } } },
   });
   const categories = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasRole, requireUser } from "@/lib/access";
+import { assertAssetVisible, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtNum } from "@/lib/format";
 import { Badge, Card, Money, PageHeader, StatTile } from "@/components/ui";
@@ -21,6 +22,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   const editable = hasRole(user.role, "EDITOR");
   const { id } = await params;
   const { page = "1" } = await searchParams;
+  assertAssetVisible(await getScope(user), id);
   const asset = await prisma.asset.findUnique({
     where: { id },
     include: {

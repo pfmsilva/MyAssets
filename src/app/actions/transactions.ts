@@ -1,17 +1,26 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/access";
+import { canSeeAsset, getScope } from "@/lib/scope";
 import { applyRules, normalize } from "@/lib/categorize";
 
+async function assertTransactionVisible(user: { id: string; role: Role }, id: string) {
+  const t = await prisma.transaction.findUniqueOrThrow({ where: { id }, select: { assetId: true } });
+  if (!canSeeAsset(await getScope(user), t.assetId)) throw new Error("Sem permissão para este movimento.");
+}
+
 export async function setTransactionCategory(id: string, categoryId: string | null) {
-  await assertRole("EDITOR");
+  const user = await assertRole("EDITOR");
+  await assertTransactionVisible(user, id);
   await prisma.transaction.update({ where: { id }, data: { categoryId: categoryId || null } });
   revalidatePath("/", "layout");
 }
 
 export async function setTransactionNote(id: string, note: string) {
-  await assertRole("EDITOR");
+  const user = await assertRole("EDITOR");
+  await assertTransactionVisible(user, id);
   await prisma.transaction.update({ where: { id }, data: { note: note.trim() || null } });
   revalidatePath("/", "layout");
 }

@@ -23,10 +23,11 @@ export async function upsertUser(_p: ActionState, fd: FormData) {
   return wrap(async () => {
     await assertRole("ADMIN");
     const data = z
-      .object({ id: z.string().optional(), email: z.string().email().transform((s) => s.toLowerCase()), name: z.string().trim().optional(), role: z.nativeEnum(Role), memberId: z.string().optional() })
-      .parse({ id: fd.get("id") || undefined, email: fd.get("email"), name: fd.get("name") || undefined, role: fd.get("role"), memberId: fd.get("memberId") || undefined });
-    if (data.id) await prisma.user.update({ where: { id: data.id }, data: { name: data.name, role: data.role, memberId: data.memberId ?? null } });
-    else await prisma.user.create({ data: { email: data.email, name: data.name, role: data.role, memberId: data.memberId ?? null } });
+      .object({ id: z.string().optional(), email: z.string().email().transform((s) => s.toLowerCase()), name: z.string().trim().optional(), role: z.nativeEnum(Role), memberIds: z.array(z.string().min(1)).default([]) })
+      .parse({ id: fd.get("id") || undefined, email: fd.get("email"), name: fd.get("name") || undefined, role: fd.get("role"), memberIds: fd.getAll("memberIds").map(String).filter(Boolean) });
+    const visibleMembers = { set: data.memberIds.map((id) => ({ id })) };
+    if (data.id) await prisma.user.update({ where: { id: data.id }, data: { name: data.name, role: data.role, visibleMembers } });
+    else await prisma.user.create({ data: { email: data.email, name: data.name, role: data.role, visibleMembers: { connect: data.memberIds.map((id) => ({ id })) } } });
   });
 }
 

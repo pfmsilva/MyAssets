@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { getScope, memberScopeWhere } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { getNetWorthSeries } from "@/lib/analytics";
 import { ASSET_TYPE_LABEL, fmtEur, monthLabel } from "@/lib/format";
@@ -10,9 +11,10 @@ import { SERIES, TYPE_COLORS } from "@/components/charts/theme";
 export const dynamic = "force-dynamic";
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ by?: string; range?: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { by = "type", range = "24" } = await searchParams;
-  const [series, members] = await Promise.all([getNetWorthSeries(), prisma.member.findMany({ orderBy: { sortOrder: "asc" } })]);
+  const scope = await getScope(user);
+  const [series, members] = await Promise.all([getNetWorthSeries({ assetIds: scope.assetIds }), prisma.member.findMany({ where: memberScopeWhere(scope), orderBy: { sortOrder: "asc" } })]);
   const n = range === "all" ? series.months.length : Number(range);
   const months = series.months.slice(-n);
   let data: Record<string, number | string>[] = [];

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { getScope, memberScopeWhere } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { byMember, getCurrentValues } from "@/lib/analytics";
 import { fmtEur, fmtPct } from "@/lib/format";
@@ -8,8 +9,9 @@ import { Card, PageHeader } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export default async function MembersPage() {
-  await requireUser();
-  const [values, members] = await Promise.all([getCurrentValues(), prisma.member.findMany({ orderBy: { sortOrder: "asc" } })]);
+  const user = await requireUser();
+  const scope = await getScope(user);
+  const [values, members] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), prisma.member.findMany({ where: memberScopeWhere(scope), orderBy: { sortOrder: "asc" } })]);
   const totals = byMember(values);
   const grand = totals.reduce((s, m) => s + m.value, 0);
   return (

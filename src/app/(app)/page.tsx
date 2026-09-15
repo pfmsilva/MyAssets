@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { getScope } from "@/lib/scope";
 import { byMember, getCurrentValues, getNetWorthSeries, groupBy } from "@/lib/analytics";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, isStale } from "@/lib/format";
 import { Card, PageHeader, StatTile, Money, Badge, Alert } from "@/components/ui";
@@ -12,7 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ forbidden?: string }> }) {
   const user = await requireUser();
   const { forbidden } = await searchParams;
-  const [values, series] = await Promise.all([getCurrentValues(), getNetWorthSeries()]);
+  const scope = await getScope(user);
+  const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds })]);
   const total = values.reduce((s, a) => s + a.value, 0);
   const months = series.months;
   const prev = months.length >= 2 ? months[months.length - 2].total : null;
@@ -28,7 +30,11 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Visão geral" subtitle={latest ? `Última atualização: ${fmtDate(latest.date!)} (${latest.name})` : "Ainda sem valores registados"} />
+      <PageHeader
+        title="Visão geral"
+        subtitle={latest ? `Última atualização: ${fmtDate(latest.date!)} (${latest.name})` : "Ainda sem valores registados"}
+        actions={user.role === "ADMIN" && values.length > 0 ? <a href="/api/relatorio" className="btn" target="_blank" rel="noopener">Relatório PDF</a> : undefined}
+      />
       {forbidden && <div className="mb-4"><Alert kind="error">Não tem permissão para essa área.</Alert></div>}
       {values.length === 0 && (
         <div className="mb-4">

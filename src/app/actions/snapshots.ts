@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/access";
+import { canSeeAsset, getScope } from "@/lib/scope";
 
 const positionSchema = z.object({
   name: z.string().trim().min(1),
@@ -25,11 +26,12 @@ export type ActionState = { ok?: boolean; error?: string; message?: string };
 
 export async function createSnapshot(_prev: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    await assertRole("EDITOR");
+    const user = await assertRole("EDITOR");
     let positions: unknown = undefined;
     const raw = fd.get("positions");
     if (raw && String(raw).trim()) positions = JSON.parse(String(raw));
     const data = schema.parse({ assetId: fd.get("assetId"), date: fd.get("date"), value: fd.get("value"), note: fd.get("note") || undefined, positions });
+    if (!canSeeAsset(await getScope(user), data.assetId)) throw new Error("Sem permissão para este ativo.");
     const value = data.positions?.length ? data.positions.reduce((s, p) => s + p.valueEur, 0) : data.value;
     const snap = await prisma.snapshot.upsert({
       where: { assetId_date: { assetId: data.assetId, date: new Date(data.date) } },
@@ -51,7 +53,9 @@ export async function createSnapshot(_prev: ActionState, fd: FormData): Promise<
 }
 
 export async function deleteSnapshot(id: string) {
-  await assertRole("EDITOR");
+  const user = await assertRole("EDITOR");
+  const snap = await prisma.snapshot.findUniqueOrThrow({ where: { id }, select: { assetId: true } });
+  if (!canSeeAsset(await getScope(user), snap.assetId)) throw new Error("Sem permissão para este ativo.");
   await prisma.snapshot.delete({ where: { id } });
   revalidatePath("/", "layout");
 }

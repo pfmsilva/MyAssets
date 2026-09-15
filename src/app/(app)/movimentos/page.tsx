@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { hasRole, requireUser } from "@/lib/access";
+import { assetScopeWhere, canSeeAsset, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { Card, PageHeader } from "@/components/ui";
 import { TransactionTable } from "@/components/TransactionTable";
@@ -16,9 +17,10 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const pageN = Math.max(1, Number(sp.page) || 1);
   const take = 100;
-  const where: Prisma.TransactionWhereInput = {};
+  const scope = await getScope(user);
+  const where: Prisma.TransactionWhereInput = scope.all ? {} : { assetId: { in: scope.assetIds } };
   if (sp.q) where.description = { contains: sp.q, mode: "insensitive" };
-  if (sp.asset) where.assetId = sp.asset;
+  if (sp.asset && canSeeAsset(scope, sp.asset)) where.assetId = sp.asset;
   if (sp.category === "none") where.categoryId = null;
   else if (sp.category) where.categoryId = sp.category;
   if (sp.month && /^\d{4}-\d{2}$/.test(sp.month)) {
@@ -30,7 +32,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const [rows, count, assets, categories, sum] = await Promise.all([
     prisma.transaction.findMany({ where, orderBy: [{ date: "desc" }, { seq: "desc" }], skip: (pageN - 1) * take, take, include: { asset: { select: { name: true } } } }),
     prisma.transaction.count({ where }),
-    prisma.asset.findMany({ where: { transactions: { some: {} } }, orderBy: { sortOrder: "asc" } }),
+    prisma.asset.findMany({ where: { transactions: { some: {} }, ...assetScopeWhere(scope) }, orderBy: { sortOrder: "asc" } }),
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.transaction.aggregate({ where, _sum: { amount: true } }),
   ]);

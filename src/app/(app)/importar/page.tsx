@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/access";
+import { assetIdScopeWhere, assetScopeWhere, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
 import { IMPORTERS } from "@/lib/importers";
 import { fmtDate } from "@/lib/format";
@@ -11,11 +12,12 @@ import { deleteImportBatch } from "@/app/actions/import";
 export const dynamic = "force-dynamic";
 
 export default async function ImportPage({ searchParams }: { searchParams: Promise<{ asset?: string }> }) {
-  await requireUser("EDITOR");
+  const user = await requireUser("EDITOR");
   const { asset } = await searchParams;
+  const scope = await getScope(user);
   const [assets, batches] = await Promise.all([
-    prisma.asset.findMany({ where: { active: true }, orderBy: [{ importer: "asc" }, { sortOrder: "asc" }] }),
-    prisma.importBatch.findMany({ orderBy: { createdAt: "desc" }, take: 20, include: { asset: true, user: { select: { name: true, email: true } } } }),
+    prisma.asset.findMany({ where: { active: true, ...assetScopeWhere(scope) }, orderBy: [{ importer: "asc" }, { sortOrder: "asc" }] }),
+    prisma.importBatch.findMany({ where: assetIdScopeWhere(scope), orderBy: { createdAt: "desc" }, take: 20, include: { asset: true, user: { select: { name: true, email: true } } } }),
   ]);
   const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept }));
   return (

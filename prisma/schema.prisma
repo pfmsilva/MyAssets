@@ -49,8 +49,7 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(VIEWER)
-  memberId      String?
-  member        Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  visibleMembers Member[] @relation("UserVisibleMembers")
   accounts      Account[]
   sessions      Session[]
   importBatches ImportBatch[]
@@ -98,7 +97,7 @@ model Member {
   name       String
   color      String           @default("#2a78d6")
   sortOrder  Int              @default(0)
-  users      User[]
+  viewers    User[]           @relation("UserVisibleMembers")
   ownerships AssetOwnership[]
   createdAt  DateTime         @default(now())
 }

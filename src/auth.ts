@@ -6,7 +6,7 @@ import { authConfig, DEV_LOGIN } from "./auth.config";
 
 declare module "next-auth" {
   interface Session {
-    user: { id: string; email: string; name?: string | null; image?: string | null; role: Role; memberId?: string | null };
+    user: { id: string; email: string; name?: string | null; image?: string | null; role: Role };
   }
 }
 
@@ -43,7 +43,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (u) {
           token.uid = u.id;
           token.role = u.role;
-          token.memberId = u.memberId;
           token.name = u.name ?? token.name;
         }
       }
@@ -52,7 +51,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       session.user.id = (token.uid as string) ?? session.user.id;
       session.user.role = (token.role as Role) ?? "VIEWER";
-      session.user.memberId = (token.memberId as string | null) ?? null;
       return session;
     },
   },
