@@ -19,6 +19,7 @@ export type ImportResult = {
 };
 
 function txHash(t: ParsedTransaction, dup: number) {
+  if (t.externalId) return createHash("sha256").update(`id|${t.externalId}|${dup}`).digest("hex").slice(0, 40);
   return createHash("sha256")
     .update([t.date, t.description, t.amount.toFixed(2), t.balanceAfter?.toFixed(2) ?? "", dup].join("|"))
     .digest("hex")

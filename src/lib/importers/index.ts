@@ -2,6 +2,7 @@ import { parseBpi } from "./bpi";
 import { parseCtt } from "./ctt";
 import { parseDegiro } from "./degiro";
 import { parseRevolut } from "./revolut";
+import { parseXtb } from "./xtb";
 import { ParsedImport } from "./types";
 
 export const IMPORTERS = {
@@ -9,6 +10,7 @@ export const IMPORTERS = {
   revolut: { label: "Revolut (extrato .csv)", accept: ".csv", needsBalance: false, parse: (buf: ArrayBuffer) => parseRevolut(new TextDecoder("utf-8").decode(buf)) },
   degiro: { label: "DEGIRO (carteira .xls/.xlsx)", accept: ".xls,.xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseDegiro(buf) },
   ctt: { label: "Banco CTT (movimentos .xlsx)", accept: ".xlsx,.xls", needsBalance: true, parse: (buf: ArrayBuffer) => parseCtt(buf) },
+  xtb: { label: "XTB (relatório de conta .xlsx)", accept: ".xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseXtb(buf) },
 } as const;
 
 export type ImporterKey = keyof typeof IMPORTERS;

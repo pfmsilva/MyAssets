@@ -253,7 +253,7 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
       table(
         [
           { title: "Produto", key: "name", width: 200 },
-          { title: "ISIN", key: "isin", width: 85 },
+          { title: "ISIN / Ticker", key: "isin", width: 85 },
           { title: "Qtd.", key: "qty", width: 55, align: "right" },
           { title: "Preço", key: "price", width: 60, align: "right" },
           { title: "Valor", key: "value", width: 75, align: "right" },

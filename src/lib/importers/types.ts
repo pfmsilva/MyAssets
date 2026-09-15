@@ -8,6 +8,7 @@ export type ParsedTransaction = {
   balanceAfter?: number;
   kind?: string;
   status: "COMPLETED" | "PENDING";
+  externalId?: string; // stable id from the source, used for de-duplication when present
 };
 
 export type ParsedPosition = {
@@ -21,7 +22,7 @@ export type ParsedPosition = {
 };
 
 export type ParsedImport = {
-  source: "bpi" | "revolut" | "degiro" | "ctt";
+  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb";
   transactions: ParsedTransaction[];
   positions: ParsedPosition[];
   balance?: number; // total value of the account at balanceDate
@@ -29,6 +30,22 @@ export type ParsedImport = {
   meta: Record<string, string>;
   warnings: string[];
 };
+
+import * as XLSX from "xlsx";
+
+/** Reads a workbook while muting SheetJS zip-size warnings some exports trigger (e.g. XTB). */
+export function readWorkbook(buffer: ArrayBuffer, opts: XLSX.ParsingOptions = {}): XLSX.WorkBook {
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === "string" && /Bad uncompressed size/i.test(args[0])) return;
+    original(...args);
+  };
+  try {
+    return XLSX.read(buffer, { type: "array", ...opts });
+  } finally {
+    console.error = original;
+  }
+}
 
 export function toIsoDate(d: Date): string {
   return d.toISOString().slice(0, 10);

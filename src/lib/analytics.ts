@@ -124,7 +124,7 @@ export async function getExpenseSeries(opts: { assetId?: string; assetIds?: stri
   since.setUTCMonth(since.getUTCMonth() - ((opts.months ?? 24) - 1));
   since.setUTCHours(0, 0, 0, 0);
   const txs = await prisma.transaction.findMany({
-    where: { date: { gte: since }, status: "COMPLETED", ...(opts.assetId ? { assetId: opts.assetId } : opts.assetIds ? { assetId: { in: opts.assetIds } } : {}), asset: { active: true } },
+    where: { date: { gte: since }, status: "COMPLETED", ...(opts.assetId ? { assetId: opts.assetId } : opts.assetIds ? { assetId: { in: opts.assetIds } } : {}), asset: { active: true, type: "CURRENT_ACCOUNT" } },
     select: { date: true, amount: true, categoryId: true, category: { select: { name: true, kind: true, color: true } } },
   });
   const categories = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });

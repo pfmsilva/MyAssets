@@ -69,7 +69,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
             <div className="min-w-0 lg:col-span-2"><Donut data={latest.positions.map((p) => ({ name: p.name, value: p.valueEur }))} /></div>
             <div className="min-w-0 overflow-x-auto lg:col-span-3">
               <table className="table">
-                <thead><tr><th>Produto</th><th>ISIN</th><th className="text-right">Qtd.</th><th className="text-right">Preço</th><th className="text-right">Valor €</th><th className="text-right">%</th></tr></thead>
+                <thead><tr><th>Produto</th><th>ISIN / Ticker</th><th className="text-right">Qtd.</th><th className="text-right">Preço</th><th className="text-right">Valor €</th><th className="text-right">%</th></tr></thead>
                 <tbody>
                   {[...latest.positions].sort((a, b) => b.valueEur - a.valueEur).map((p) => (
                     <tr key={p.id}>
