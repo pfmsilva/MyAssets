@@ -1,7 +1,7 @@
 // Runs `prisma migrate deploy` using whichever Postgres variable is available
 // (manual DATABASE_URL or the ones injected by Vercel's Neon integration).
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 // Local runs: read .env.local / .env (deployments already have the variables in the environment).
 for (const file of [".env.local", ".env"]) {
@@ -41,5 +41,35 @@ for (const name of [...DIRECT, ...POOLED]) {
 const url = found.value;
 console.log(`→ Migrações com a variável ${found.key}${prefixes.length > 1 ? ` (atenção: existem várias bases configuradas: ${prefixes.map((p) => p || "(sem prefixo)").join(", ")}; a app usa sempre "${prefix || "(sem prefixo)"}")` : ""}`);
 
-const r = spawnSync("npx", ["prisma", "migrate", "deploy"], { stdio: "inherit", env: { ...process.env, DATABASE_URL: url }, shell: process.platform === "win32" });
+const run = (args) => spawnSync("npx", ["prisma", ...args], { stdio: "inherit", env: { ...process.env, DATABASE_URL: url }, shell: process.platform === "win32" });
+
+// P3005 guard: a database with tables but no `_prisma_migrations` (Neon's sample table, or a
+// schema created with `prisma db push`) needs a baseline before `migrate deploy` accepts it.
+async function baselineIfNeeded() {
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient({ datasourceUrl: url });
+  try {
+    const rows = await prisma.$queryRawUnsafe(`select table_name from information_schema.tables where table_schema = current_schema()`);
+    const tables = new Set(rows.map((r) => r.table_name));
+    if (tables.size === 0 || tables.has("_prisma_migrations")) return;
+    const ours = tables.has("User") && tables.has("Asset");
+    const dirs = readdirSync("prisma/migrations", { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+    console.log(`→ Base com tabelas mas sem histórico de migrações (${[...tables].join(", ")}). ${ours ? "Esquema já existe: a registar migrações como aplicadas." : "A aplicar o esquema e a registar as migrações."}`);
+    for (const dir of dirs) {
+      if (!ours) {
+        const r = run(["db", "execute", "--url", url, "--file", `prisma/migrations/${dir}/migration.sql`]);
+        if (r.status !== 0) process.exit(r.status ?? 1);
+      }
+      const r = run(["migrate", "resolve", "--applied", dir]);
+      if (r.status !== 0) process.exit(r.status ?? 1);
+    }
+  } catch (e) {
+    console.error(`(baseline) não foi possível inspecionar a base: ${String(e?.message ?? e).split("\n").find((l) => l.trim()) ?? e}`);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+await baselineIfNeeded();
+const r = run(["migrate", "deploy"]);
 process.exit(r.status ?? 1);
