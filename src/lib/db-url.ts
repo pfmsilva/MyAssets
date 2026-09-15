@@ -28,6 +28,16 @@ export function findDatabaseUrl(opts: { direct?: boolean } = {}): Found | undefi
   return undefined;
 }
 
+/** Postgres schema used by the app unless the URL already sets `schema=`. Keeps the app isolated
+ *  when the database is shared with other projects (e.g. a Neon database reused by another app). */
+export const APP_SCHEMA = "peculio";
+
+export function withSchema(url: string, schema = APP_SCHEMA): string {
+  if (/[?&]schema=/.test(url)) return url;
+  return url + (url.includes("?") ? "&" : "?") + "schema=" + schema;
+}
+
 export function resolveDatabaseUrl(opts: { direct?: boolean } = {}): string | undefined {
-  return findDatabaseUrl(opts)?.value;
+  const found = findDatabaseUrl(opts);
+  return found ? withSchema(found.value) : undefined;
 }

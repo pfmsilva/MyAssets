@@ -38,8 +38,11 @@ for (const name of [...DIRECT, ...POOLED]) {
   found = candidates.find((c) => c.prefix === prefix && c.suffix === name);
   if (found) break;
 }
-const url = found.value;
-console.log(`→ Migrações com a variável ${found.key}${prefixes.length > 1 ? ` (atenção: existem várias bases configuradas: ${prefixes.map((p) => p || "(sem prefixo)").join(", ")}; a app usa sempre "${prefix || "(sem prefixo)"}")` : ""}`);
+// Same as src/lib/db-url.ts: use a dedicated Postgres schema unless the URL already sets one.
+const APP_SCHEMA = "peculio";
+const url = /[?&]schema=/.test(found.value) ? found.value : found.value + (found.value.includes("?") ? "&" : "?") + "schema=" + APP_SCHEMA;
+const schemaName = new URL(url).searchParams.get("schema");
+console.log(`→ Migrações com a variável ${found.key} (schema "${schemaName}")${prefixes.length > 1 ? ` (atenção: existem várias bases configuradas: ${prefixes.map((p) => p || "(sem prefixo)").join(", ")}; a app usa sempre "${prefix || "(sem prefixo)"}")` : ""}`);
 
 const run = (args) => spawnSync("npx", ["prisma", ...args], { stdio: "inherit", env: { ...process.env, DATABASE_URL: url }, shell: process.platform === "win32" });
 
@@ -49,7 +52,7 @@ async function baselineIfNeeded() {
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient({ datasourceUrl: url });
   try {
-    const rows = await prisma.$queryRawUnsafe(`select table_name from information_schema.tables where table_schema = current_schema()`);
+    const rows = await prisma.$queryRawUnsafe(`select table_name from information_schema.tables where table_schema = $1`, schemaName);
     const tables = new Set(rows.map((r) => r.table_name));
     if (tables.size === 0 || tables.has("_prisma_migrations")) return;
     const ours = tables.has("User") && tables.has("Asset");
