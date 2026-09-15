@@ -19,18 +19,19 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
     prisma.asset.findMany({ where: { active: true, ...assetScopeWhere(scope) }, orderBy: [{ importer: "asc" }, { sortOrder: "asc" }] }),
     prisma.importBatch.findMany({ where: assetIdScopeWhere(scope), orderBy: { createdAt: "desc" }, take: 20, include: { asset: true, user: { select: { name: true, email: true } } } }),
   ]);
-  const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept }));
+  const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance }));
   return (
     <>
-      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv) e carteira DEGIRO (.xls). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
+      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx) e carteira DEGIRO (.xls). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3"><ImportForm assets={assets.map((a) => ({ id: a.id, name: a.name, importer: a.importer }))} importers={importers} initialAsset={asset} /></Card>
         <Card title="Como obter os ficheiros" className="lg:col-span-2 text-sm text-ink-2">
           <ul className="list-inside list-disc space-y-1">
             <li><b>BPI Net</b>: Contas → Movimentos → exportar para Excel (.xlsx). Inclui o saldo e os movimentos apresentados.</li>
             <li><b>Revolut</b>: App → Conta → Extrato → CSV (Excel). Pode exportar todo o histórico; só os novos são adicionados.</li>
+            <li><b>Banco CTT</b>: Conta à Ordem → Movimentos → Exportar (Excel). Não traz saldo: indique o saldo atual da app CTT.</li>
             <li><b>DEGIRO</b>: Carteira → Exportar → XLS. É um retrato do dia; indique a data.</li>
-            <li>Ativos sem importador (PPR, XTB, Binance, CTT, dinheiro): registe o valor na página do ativo.</li>
+            <li>Ativos sem importador (PPR, XTB, Binance, dinheiro): registe o valor na página do ativo.</li>
           </ul>
         </Card>
       </div>

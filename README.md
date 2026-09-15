@@ -9,7 +9,7 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   desses membros (administradores veem sempre tudo).
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
-- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), carteira DEGIRO (.xls).
+- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls).
 - **Registo manual** de valores (e posições) para os restantes ativos.
 - **Histórico** completo: todos os valores importados/registados ficam guardados; os extratos
   geram automaticamente saldos de fim de mês para o passado.
@@ -72,12 +72,13 @@ Sem credenciais Google, definir `AUTH_DEV_LOGIN="true"` no `.env` para um login 
 |---|---|---|
 | BPI Net | Movimentos → exportar Excel (.xlsx) | saldo contabilístico + movimentos |
 | Revolut | Extrato → CSV | movimentos (revertidos ignorados, pendentes atualizados) + saldo |
+| Banco CTT | Conta à Ordem → Movimentos → Exportar (.xlsx) | movimentos; sem saldo no ficheiro, por isso pode indicar-se o saldo atual para reconstruir os saldos mensais |
 | DEGIRO | Carteira → Exportar → XLS | posições e valor total (indicar a data) |
 
 Movimentos repetidos são detetados por hash (data, descrição, montante, saldo) e ignorados,
 por isso é seguro importar extratos sobrepostos. Cada importação pode ser anulada na página do ativo.
 
-Novos importadores (XTB, Binance, CTT, PPR): adicionar um parser em `src/lib/importers/` que devolve
+Novos importadores (XTB, Binance, PPR): adicionar um parser em `src/lib/importers/` que devolve
 `ParsedImport` e registá-lo em `src/lib/importers/index.ts`.
 
 ## Estrutura

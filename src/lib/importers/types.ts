@@ -21,7 +21,7 @@ export type ParsedPosition = {
 };
 
 export type ParsedImport = {
-  source: "bpi" | "revolut" | "degiro";
+  source: "bpi" | "revolut" | "degiro" | "ctt";
   transactions: ParsedTransaction[];
   positions: ParsedPosition[];
   balance?: number; // total value of the account at balanceDate

@@ -4,7 +4,7 @@ import { importFile, ImportState } from "@/app/actions/import";
 import { fmtDate, fmtEur, todayIso } from "@/lib/format";
 
 type AssetOpt = { id: string; name: string; importer: string | null };
-type ImporterOpt = { key: string; label: string; accept: string };
+type ImporterOpt = { key: string; label: string; accept: string; needsBalance: boolean };
 
 export function ImportForm({ assets, importers, initialAsset }: { assets: AssetOpt[]; importers: ImporterOpt[]; initialAsset?: string }) {
   const [state, action, pending] = useActionState<ImportState, FormData>(importFile, {});
@@ -37,6 +37,19 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
             <label htmlFor="snapshotDate">Data da carteira (o ficheiro DEGIRO não tem data)</label>
             <input id="snapshotDate" name="snapshotDate" type="date" defaultValue={todayIso()} />
           </div>
+        )}
+        {imp?.needsBalance && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="currentBalance">Saldo atual da conta (EUR)</label>
+              <input id="currentBalance" name="currentBalance" type="number" step="0.01" inputMode="decimal" placeholder="ex.: 1250,40" />
+              <span className="text-xs text-ink-3">Este extrato não traz saldo. Com o saldo atual a app reconstrói os saldos de fim de mês; sem ele importa só os movimentos.</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="snapshotDate">Data do saldo</label>
+              <input id="snapshotDate" name="snapshotDate" type="date" defaultValue={todayIso()} />
+            </div>
+          </>
         )}
       </div>
       <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "A importar…" : "Importar"}</button>

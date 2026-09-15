@@ -36,7 +36,8 @@ export async function runImport(opts: {
   importer: ImporterKey;
   fileName: string;
   buffer: ArrayBuffer;
-  snapshotDate?: string; // override for the snapshot date (DEGIRO)
+  snapshotDate?: string; // override for the snapshot date (DEGIRO, or the date of `currentBalance`)
+  currentBalance?: number; // for statements without running balance (CTT): balance after the newest row
   userId?: string;
 }): Promise<ImportResult> {
   const asset = await prisma.asset.findUniqueOrThrow({ where: { id: opts.assetId } });
@@ -44,6 +45,27 @@ export async function runImport(opts: {
   const warnings = [...parsed.warnings];
   const today = new Date().toISOString().slice(0, 10);
   const balanceDate = opts.snapshotDate || parsed.balanceDate || today;
+
+  // Hashes come from the file's own data (a reconstructed balance must not change them).
+  const seen = new Map<string, number>();
+  const hashes = parsed.transactions.map((t) => {
+    const base = txHash(t, 0);
+    const dup = seen.get(base) ?? 0;
+    seen.set(base, dup + 1);
+    return dup ? txHash(t, dup) : base;
+  });
+  if (opts.currentBalance !== undefined && parsed.transactions.length && parsed.transactions.every((t) => t.balanceAfter === undefined)) {
+    // reconstruct balances backwards from the known current balance
+    const chrono = [...parsed.transactions].sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
+    let bal = opts.currentBalance;
+    for (let i = chrono.length - 1; i >= 0; i--) {
+      chrono[i].balanceAfter = Math.round(bal * 100) / 100;
+      bal -= chrono[i].amount;
+    }
+    parsed.balance = opts.currentBalance;
+    parsed.balanceDate = opts.snapshotDate || parsed.balanceDate;
+    warnings.splice(0, warnings.length, ...warnings.filter((w) => !/indique o saldo atual/i.test(w)));
+  }
 
   const batch = await prisma.importBatch.create({
     data: { assetId: asset.id, source: parsed.source, fileName: opts.fileName, userId: opts.userId, rowsTotal: parsed.transactions.length },
@@ -56,11 +78,7 @@ export async function runImport(opts: {
     const rules = await loadRules();
     // pending rows are replaced by the new file's view of them
     await prisma.transaction.deleteMany({ where: { assetId: asset.id, status: "PENDING" } });
-    const seen = new Map<string, number>();
-    const rows = parsed.transactions.map((t) => {
-      const base = txHash(t, 0);
-      const dup = seen.get(base) ?? 0;
-      seen.set(base, dup + 1);
+    const rows = parsed.transactions.map((t, i) => {
       const categoryId = matchCategory(rules, t.description);
       if (categoryId) categorized++;
       return {
@@ -74,7 +92,7 @@ export async function runImport(opts: {
         balanceAfter: t.balanceAfter ?? null,
         kind: t.kind ?? null,
         status: t.status,
-        hash: dup ? txHash(t, dup) : base,
+        hash: hashes[i],
         categoryId,
         importBatchId: batch.id,
       };
