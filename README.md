@@ -10,6 +10,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.
+- **Cotações em direto** (Yahoo Finance, sem chave): valor atual das carteiras DEGIRO/XTB, variação do dia e
+  ganho face ao último registo; mapeamento ISIN/ticker → símbolo Yahoo automático e editável em
+  Administração → Cotações, com links para o Yahoo. `QUOTES_MOCK="true"` simula cotações em desenvolvimento.
 - **Versão**: versão, commit e data de build visíveis na barra lateral, no login e em Administração → histórico (`CHANGELOG.md`).
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).

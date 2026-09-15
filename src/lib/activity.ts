@@ -32,6 +32,8 @@ export const ACTION_LABEL: Record<string, string> = {
   "category.delete": "Categoria apagada",
   seed: "Dados iniciais criados",
   "report.pdf": "Relatório PDF exportado",
+  "instrument.update": "Símbolo de cotação alterado",
+  "instrument.resolve": "Símbolo de cotação resolvido",
 };
 
 async function requestMeta() {

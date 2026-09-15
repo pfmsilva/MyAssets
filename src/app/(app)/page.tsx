@@ -8,6 +8,8 @@ import { Card, PageHeader, StatTile, Money, Badge, Alert } from "@/components/ui
 import { Donut } from "@/components/charts/Donut";
 import { NetWorthChart } from "@/components/charts/NetWorthChart";
 import { TYPE_COLORS } from "@/components/charts/theme";
+import { getLiveValuations } from "@/lib/quotes";
+import { Delta } from "@/components/LiveBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,11 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const scope = await getScope(user);
   const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds })]);
   const total = values.reduce((s, a) => s + a.value, 0);
+  const liveAssets = values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO");
+  const live = await getLiveValuations(liveAssets.map((a) => a.id), { resolve: false });
+  const liveRows = liveAssets.map((a) => ({ asset: a, v: live.get(a.id) })).filter((r) => r.v && r.v.quoted > 0) as { asset: (typeof values)[number]; v: NonNullable<ReturnType<typeof live.get>> }[];
+  const liveDelta = liveRows.reduce((s, r) => s + r.v.delta, 0);
+  const liveDay = liveRows.reduce((s, r) => s + r.v.dayChangeEur, 0);
   const months = series.months;
   const prev = months.length >= 2 ? months[months.length - 2].total : null;
   const delta = prev && Math.abs((total - prev) / prev) <= 1 ? (total - prev) / prev : null;
@@ -59,6 +66,35 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             <Link href="/ativos" className="underline">Atualizar</Link>
           </Alert>
         </div>
+      )}
+      {liveRows.length > 0 && (
+        <Card title="Carteiras em direto (cotações Yahoo Finance)" className="mt-4" action={<span className="text-xs text-ink-3">património em direto ≈ {fmtEur(total + liveDelta, 0)}</span>}>
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead><tr><th>Carteira</th><th className="text-right">Último registo</th><th className="text-right">Em direto</th><th className="text-right">Variação</th><th className="text-right">Hoje</th></tr></thead>
+              <tbody>
+                {liveRows.map(({ asset: a, v }) => (
+                  <tr key={a.id}>
+                    <td><Link href={`/ativos/${a.id}`} className="font-medium hover:underline">{a.name}</Link><div className="text-xs text-ink-3">{v.quoted}/{v.quotable} posições · {fmtDate(v.snapshotDate)}</div></td>
+                    <td className="text-right"><Money value={v.snapshotTotal} /></td>
+                    <td className="text-right"><Money value={v.liveTotal} className="font-medium" /></td>
+                    <td className="text-right"><Delta value={v.delta} pct={v.deltaPct} /></td>
+                    <td className="text-right"><Delta value={v.dayChangeEur} pct={v.dayChangePct} /></td>
+                  </tr>
+                ))}
+                {liveRows.length > 1 && (
+                  <tr className="font-medium">
+                    <td>Total</td>
+                    <td className="text-right"><Money value={liveRows.reduce((s, r) => s + r.v.snapshotTotal, 0)} /></td>
+                    <td className="text-right"><Money value={liveRows.reduce((s, r) => s + r.v.liveTotal, 0)} /></td>
+                    <td className="text-right"><Delta value={liveDelta} pct={null} /></td>
+                    <td className="text-right"><Delta value={liveDay} pct={null} /></td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card title="Por tipo de ativo"><Donut data={byType} total={total} centerLabel="total" /></Card>

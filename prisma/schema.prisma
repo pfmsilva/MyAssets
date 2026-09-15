@@ -237,3 +237,30 @@ model ActivityLog {
   @@index([userEmail, createdAt])
   @@index([action, createdAt])
 }
+
+/// Maps a position key (ISIN from DEGIRO, ticker from XTB) to a Yahoo Finance symbol.
+model Instrument {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  name       String
+  symbol     String?
+  manual     Boolean   @default(false)
+  lastError  String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+/// Cached market quote (also FX pairs such as USDEUR=X).
+model Quote {
+  symbol        String    @id
+  price         Float
+  currency      String
+  previousClose Float?
+  change        Float?
+  changePercent Float?
+  marketTime    DateTime?
+  shortName     String?
+  exchange      String?
+  fetchedAt     DateTime
+}

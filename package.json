@@ -1,6 +1,6 @@
 {
   "name": "peculio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -25,6 +25,7 @@
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
     "xlsx": "^0.18.5",
+    "yahoo-finance2": "^4.0.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {

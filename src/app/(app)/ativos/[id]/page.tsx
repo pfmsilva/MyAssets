@@ -14,6 +14,9 @@ import { TransactionTable } from "@/components/TransactionTable";
 import { deleteSnapshot } from "@/app/actions/snapshots";
 import { deleteImportBatch } from "@/app/actions/import";
 import { getNetWorthSeries } from "@/lib/analytics";
+import { getLiveValuations } from "@/lib/quotes";
+import { QuoteRefresh } from "@/components/QuoteRefresh";
+import { Delta } from "@/components/LiveBadge";
 
 export const dynamic = "force-dynamic";
 const SOURCE: Record<string, string> = { MANUAL: "manual", IMPORT: "importação", DERIVED: "derivado" };
@@ -44,6 +47,8 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   ]);
   const latest = asset.snapshots[0];
   const withPositions = asset.type === "BROKERAGE" || asset.type === "CRYPTO";
+  const live = withPositions && latest?.positions.length ? (await getLiveValuations([asset.id])).get(asset.id) ?? null : null;
+  const liveByPos = new Map(live?.positions.map((p) => [p.id, p]) ?? []);
   const prev = series.months.length >= 2 ? series.months[series.months.length - 2].total : null;
   const chart = series.months.map((m) => ({ month: m.month, value: m.total }));
   return (
@@ -56,6 +61,12 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Valor atual" value={latest ? fmtEur(latest.value) : "—"} delta={latest && prev && Math.abs((latest.value - prev) / prev) <= 1 ? (latest.value - prev) / prev : null} hint={latest ? `${fmtDate(latest.date)} · ${SOURCE[latest.source]}` : "sem registos"} />
         <StatTile label="Registos" value={String(asset.snapshots.length)} hint="snapshots de valor" />
+        {live && live.quoted > 0 && (
+          <>
+            <StatTile label="Valor em direto" value={fmtEur(live.liveTotal)} delta={live.deltaPct !== null && Math.abs(live.deltaPct) <= 1 ? live.deltaPct : null} hint={`${live.delta >= 0 ? "+" : "-"}${fmtEur(Math.abs(live.delta), 0)} vs. registo de ${fmtDate(live.snapshotDate)}`} />
+            <StatTile label="Hoje" value={`${live.dayChangeEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(live.dayChangeEur), 0)}`} delta={live.dayChangePct !== null && Math.abs(live.dayChangePct) <= 1 ? live.dayChangePct : null} hint="variação do dia (cotações Yahoo)" />
+          </>
+        )}
         {txCount > 0 && <StatTile label="Movimentos" value={String(txCount)} />}
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -65,24 +76,34 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
       </div>
       {latest?.positions.length ? (
         <Card title={`Posições em ${fmtDate(latest.date)}`} className="mt-4">
-          <div className="grid gap-4 lg:grid-cols-5">
-            <div className="min-w-0 lg:col-span-2"><Donut data={latest.positions.map((p) => ({ name: p.name, value: p.valueEur }))} /></div>
-            <div className="min-w-0 overflow-x-auto lg:col-span-3">
+          <div className={live ? "space-y-4" : "grid gap-4 lg:grid-cols-5"}>
+            <div className={live ? "min-w-0" : "min-w-0 lg:col-span-2"}><Donut data={latest.positions.map((p) => ({ name: p.name, value: liveByPos.get(p.id)?.liveValueEur ?? p.valueEur }))} centerLabel={live ? "em direto" : undefined} /></div>
+            <div className={live ? "min-w-0 overflow-x-auto" : "min-w-0 overflow-x-auto lg:col-span-3"}>
               <table className="table">
-                <thead><tr><th>Produto</th><th>ISIN / Ticker</th><th className="text-right">Qtd.</th><th className="text-right">Preço</th><th className="text-right">Valor €</th><th className="text-right">%</th></tr></thead>
+                <thead><tr><th>Produto</th><th>ISIN / Ticker</th><th className="text-right">Qtd.</th><th className="text-right">Preço</th>{live && <th className="text-right">Atual</th>}{live && <th className="text-right">Hoje</th>}<th className="text-right">Valor €</th><th className="text-right">%</th></tr></thead>
                 <tbody>
-                  {[...latest.positions].sort((a, b) => b.valueEur - a.valueEur).map((p) => (
-                    <tr key={p.id}>
-                      <td className="max-w-[22ch] truncate" title={p.name}>{p.name}</td>
-                      <td className="text-xs text-ink-3">{p.isin ?? ""}</td>
-                      <td className="num text-right">{p.quantity != null ? fmtNum(p.quantity, 4) : ""}</td>
-                      <td className="num text-right">{p.price != null ? fmtNum(p.price, 3) : ""}</td>
-                      <td className="text-right"><Money value={p.valueEur} /></td>
-                      <td className="num text-right text-ink-2">{((p.valueEur / latest.value) * 100).toFixed(1)} %</td>
-                    </tr>
-                  ))}
+                  {[...latest.positions].sort((a, b) => b.valueEur - a.valueEur).map((p) => {
+                    const lp = liveByPos.get(p.id);
+                    const value = lp?.liveValueEur ?? p.valueEur;
+                    const total = live?.liveTotal ?? latest.value;
+                    return (
+                      <tr key={p.id}>
+                        <td className="max-w-[22ch] truncate" title={p.name}>
+                          {lp?.yahooUrl ? <a href={lp.yahooUrl} target="_blank" rel="noopener" className="hover:underline" title={`Ver ${lp.symbol} no Yahoo Finance`}>{p.name} ↗</a> : p.name}
+                        </td>
+                        <td className="text-xs text-ink-3">{p.isin ?? ""}{lp?.symbol && lp.symbol !== p.isin ? <span className="ml-1 text-accent">{lp.symbol}</span> : null}{lp && !lp.symbol && lp.key ? <span className="ml-1 text-warn" title={lp.error ?? "sem símbolo Yahoo"}>sem cotação</span> : null}</td>
+                        <td className="num text-right">{p.quantity != null ? fmtNum(p.quantity, 4) : ""}</td>
+                        <td className="num text-right">{p.price != null ? fmtNum(p.price, 3) : ""}</td>
+                        {live && <td className="num text-right">{lp?.livePrice != null ? `${fmtNum(lp.livePrice, 3)}${lp.liveCurrency && lp.liveCurrency !== "EUR" ? ` ${lp.liveCurrency}` : ""}` : ""}</td>}
+                        {live && <td className={`num text-right ${lp?.dayChangePct != null ? (lp.dayChangePct >= 0 ? "text-good" : "text-bad") : ""}`}>{lp?.dayChangePct != null ? `${lp.dayChangePct >= 0 ? "+" : ""}${lp.dayChangePct.toFixed(2)} %` : ""}</td>}
+                        <td className="text-right"><Money value={value} />{lp?.liveValueEur != null && Math.abs(lp.liveValueEur - p.valueEur) >= 0.5 ? <div className="text-xs"><Delta value={lp.liveValueEur - p.valueEur} pct={p.valueEur ? (lp.liveValueEur - p.valueEur) / p.valueEur : null} /></div> : null}</td>
+                        <td className="num text-right text-ink-2">{total ? ((value / total) * 100).toFixed(1) : "0"} %</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+              {live && <div className="mt-2"><QuoteRefresh assetId={asset.id} quotesAt={live.quotesAt?.toISOString() ?? null} quoted={live.quoted} quotable={live.quotable} error={live.error} /></div>}
             </div>
           </div>
         </Card>

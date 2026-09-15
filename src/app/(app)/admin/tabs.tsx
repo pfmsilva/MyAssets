@@ -7,6 +7,7 @@ const TABS = [
   ["/admin/membros", "Família"],
   ["/admin/ativos", "Ativos"],
   ["/admin/categorias", "Categorias e regras"],
+  ["/admin/instrumentos", "Cotações"],
   ["/admin/atividade", "Atividade"],
 ];
 

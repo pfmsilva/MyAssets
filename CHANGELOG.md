@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.2.0 — 2026-09-15
+- Cotações em direto (Yahoo Finance) para as carteiras DEGIRO e XTB: valor em direto vs. último registo, variação do dia, preço atual por posição, com cache de 15 minutos e botão de atualização.
+- Mapeamento automático ISIN/ticker → símbolo Yahoo, corrigível em Administração → Cotações; links diretos para a página Yahoo de cada instrumento.
+- Cartão "Carteiras em direto" na visão geral.
+
 ## 1.1.0 — 2026-09-15
 - Importador XTB (relatório de conta .xlsx): posições abertas agregadas por ticker + saldo em dinheiro calculado a partir das operações de caixa; operações (depósitos, compras, vendas, dividendos, impostos, juros) importadas como movimentos, sem duplicar (ID XTB).
 - Análise de despesas passa a considerar apenas contas à ordem (operações de corretoras não contam como despesa).
