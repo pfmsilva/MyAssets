@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --surface-2: #f0efec;
+  --border: #e4e3df;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #8a8985;
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+  --good: #008300;
+  --bad: #e34948;
+  --warn: #c98500;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+  --grid: #e4e3df;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #131312;
+    --surface: #1a1a19;
+    --surface-2: #232322;
+    --border: #2f2f2d;
+    --text: #ffffff;
+    --text-2: #c3c2b7;
+    --text-3: #8a8985;
+    --accent: #3987e5;
+    --accent-ink: #ffffff;
+    --good: #2fb344;
+    --bad: #e66767;
+    --warn: #eda100;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+    --s6: #008300;
+    --s7: #9085e9;
+    --s8: #e66767;
+    --grid: #2f2f2d;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-warn: var(--warn);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+input,
+select,
+textarea {
+  @apply rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60;
+}
+label {
+  @apply text-xs font-medium text-ink-2;
+}
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-ink transition hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-50;
+}
+.btn-primary {
+  @apply border-accent bg-accent text-accent-ink hover:bg-accent/90;
+}
+.btn-danger {
+  @apply border-bad/40 text-bad hover:bg-bad/10;
+}
+.btn-sm {
+  @apply px-2 py-1 text-xs;
+}
+.card {
+  @apply rounded-xl border border-border bg-surface p-4 shadow-sm;
+}
+.table {
+  @apply w-full text-sm;
+}
+.table th {
+  @apply border-b border-border px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ink-3;
+}
+.table td {
+  @apply border-b border-border/60 px-2 py-2 align-middle;
+}
+.table tr:last-child td {
+  @apply border-b-0;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.recharts-tooltip-wrapper {
+  outline: none;
+}
