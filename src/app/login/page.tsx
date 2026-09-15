@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="flex items-center gap-3">
           <img src="/icon.svg" alt="" className="h-10 w-10" />
           <div>
-            <h1 className="text-xl font-semibold">MyAssets</h1>
+            <h1 className="text-xl font-semibold">Pecúlio</h1>
             <p className="text-sm text-ink-2">Património financeiro da família</p>
           </div>
         </div>

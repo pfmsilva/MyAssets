@@ -1,4 +1,4 @@
-# MyAssets
+# Pecúlio
 
 Ver README.md para arquitetura, comandos e deploy.
 

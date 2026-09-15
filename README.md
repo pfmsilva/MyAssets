@@ -1,4 +1,4 @@
-# MyAssets
+# Pecúlio
 
 Aplicação web (desktop e mobile) para controlar o património financeiro da família:
 contas à ordem (BPI, Revolut, CTT), PPR (Optimize, Save and Grow), carteiras de

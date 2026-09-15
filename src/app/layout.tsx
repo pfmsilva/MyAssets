@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "MyAssets", template: "%s · MyAssets" },
+  title: { default: "Pecúlio", template: "%s · Pecúlio" },
   description: "Património financeiro da família",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
-  appleWebApp: { capable: true, title: "MyAssets", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Pecúlio", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

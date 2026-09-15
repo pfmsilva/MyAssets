@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-surface px-3 py-4 md:flex">
         <Link href="/" className="mb-6 flex items-center gap-2 px-2">
           <img src="/icon.svg" alt="" className="h-8 w-8" />
-          <span className="text-lg font-semibold">MyAssets</span>
+          <span className="text-lg font-semibold">Pecúlio</span>
         </Link>
         <SideNav items={items} />
         <div className="mt-auto border-t border-border pt-3">
@@ -41,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:hidden" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}>
           <Link href="/" className="flex items-center gap-2">
             <img src="/icon.svg" alt="" className="h-7 w-7" />
-            <span className="font-semibold">MyAssets</span>
+            <span className="font-semibold">Pecúlio</span>
           </Link>
           <details className="relative">
             <summary className="btn btn-sm cursor-pointer list-none">{(user.name ?? user.email).split(" ")[0]}</summary>
