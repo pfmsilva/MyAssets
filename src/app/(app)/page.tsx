@@ -9,6 +9,7 @@ import { Donut } from "@/components/charts/Donut";
 import { NetWorthChart } from "@/components/charts/NetWorthChart";
 import { TYPE_COLORS } from "@/components/charts/theme";
 import { getLiveValuations } from "@/lib/quotes";
+import { getBudgetOverview } from "@/lib/budget";
 import { Delta } from "@/components/LiveBadge";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const members = byMember(values);
   const latest = values.filter((a) => a.date).sort((a, b) => (b.date! > a.date! ? 1 : -1))[0];
   const stale = values.filter((a) => isStale(a.date));
+  const budget = await getBudgetOverview(new Date().toISOString().slice(0, 7), scope.assetIds);
+  const budgetOver = budget.rows.filter((r) => r.status === "over");
+  const budgetWarn = budget.rows.filter((r) => r.status === "warn");
   const last12 = months.slice(-12).map((m) => ({ month: m.month, ...Object.fromEntries(Object.entries(m.byType)) }));
   const typeSeries = Object.keys(months.at(-1)?.byType ?? {}).map((t) => ({ key: t, name: ASSET_TYPE_LABEL[t] ?? t, color: TYPE_COLORS[t] }));
 
@@ -59,6 +63,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <StatTile label="PPR" value={fmtEur(values.filter((a) => a.type === "PPR").reduce((s, a) => s + a.value, 0), 0)} />
         <StatTile label="Liquidez" value={fmtEur(values.filter((a) => a.type === "CURRENT_ACCOUNT" || a.type === "CASH").reduce((s, a) => s + a.value, 0), 0)} hint="contas à ordem + dinheiro" />
       </div>
+      {(budgetOver.length > 0 || budgetWarn.length > 0) && (
+        <div className="mt-4">
+          <Alert kind={budgetOver.length ? "error" : "info"}>
+            Orçamento deste mês: {budgetOver.length ? `${budgetOver.length} categoria(s) acima do limite (${budgetOver.map((r) => r.name).join(", ")})` : ""}{budgetOver.length && budgetWarn.length ? "; " : ""}{budgetWarn.length ? `${budgetWarn.length} perto do limite (${budgetWarn.map((r) => r.name).join(", ")})` : ""}.{" "}
+            <Link href="/orcamento" className="underline">Ver orçamento</Link>
+          </Alert>
+        </div>
+      )}
       {stale.length > 0 && (
         <div className="mt-4">
           <Alert>

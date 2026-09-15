@@ -54,6 +54,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         title="Despesas e poupança"
         subtitle="Baseado nos movimentos importados das contas à ordem. Transferências e investimentos não contam como despesa."
         actions={<>
+          <Link href="/orcamento" className="btn btn-sm">Orçamento →</Link>
           <div className="flex gap-1">{opt("months", "3", "3 m", months)}{opt("months", "6", "6 m", months)}{opt("months", "12", "12 m", months)}{opt("months", "24", "24 m", months)}</div>
           <div className="flex gap-1">{opt("asset", "", "Todas", asset)}{assets.map((a) => opt("asset", a.id, a.name, asset))}</div>
         </>}

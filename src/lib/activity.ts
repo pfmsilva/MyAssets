@@ -33,6 +33,9 @@ export const ACTION_LABEL: Record<string, string> = {
   seed: "Dados iniciais criados",
   "report.pdf": "Relatório PDF exportado",
   "instrument.update": "Símbolo de cotação alterado",
+  "budget.set": "Orçamento definido",
+  "flow.create": "Fluxo de capital registado",
+  "flow.delete": "Fluxo de capital apagado",
   "instrument.resolve": "Símbolo de cotação resolvido",
 };
 

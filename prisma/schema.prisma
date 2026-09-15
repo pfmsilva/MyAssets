@@ -194,6 +194,7 @@ model Category {
   sortOrder    Int            @default(0)
   rules        CategoryRule[]
   transactions Transaction[]
+  budget       Budget?
 }
 
 model CategoryRule {
@@ -291,4 +292,14 @@ model Quote {
   shortName     String?
   exchange      String?
   fetchedAt     DateTime
+}
+
+/// Monthly spending limit for an expense category.
+model Budget {
+  id           String   @id @default(cuid())
+  categoryId   String   @unique
+  monthlyLimit Float
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

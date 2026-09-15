@@ -4,7 +4,7 @@ import { hasRole, requireUser } from "@/lib/access";
 import { logView } from "@/lib/activity";
 import { assertAssetVisible, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
-import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtNum } from "@/lib/format";
+import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtNum, fmtPct } from "@/lib/format";
 import { Badge, Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { NetWorthChart } from "@/components/charts/NetWorthChart";
 import { Donut } from "@/components/charts/Donut";
@@ -15,6 +15,8 @@ import { deleteSnapshot } from "@/app/actions/snapshots";
 import { deleteImportBatch } from "@/app/actions/import";
 import { getNetWorthSeries } from "@/lib/analytics";
 import { getLiveValuations } from "@/lib/quotes";
+import { computeAssetPerf, getAssetFlows } from "@/lib/performance";
+import { FlowForm } from "@/components/FlowForm";
 import { QuoteRefresh } from "@/components/QuoteRefresh";
 import { Delta } from "@/components/LiveBadge";
 
@@ -54,6 +56,10 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   const costTotal = costPositions.reduce((s, p) => s + p.costEur!, 0);
   const pnlTotal = costPositions.reduce((s, p) => s + ((liveByPos.get(p.id)?.liveValueEur ?? p.valueEur) - p.costEur!), 0);
   const hasCost = costPositions.length > 0;
+  const isInvestment = asset.type === "BROKERAGE" || asset.type === "PPR" || asset.type === "CRYPTO";
+  const perf = isInvestment && asset.snapshots.length ? computeAssetPerf(asset, asset.snapshots, await getAssetFlows(asset)) : null;
+  const perfSince = perf?.periods.at(-1);
+  const manualFlows = isInvestment ? await prisma.transaction.findMany({ where: { assetId: id, kind: "Fluxo manual" }, orderBy: { date: "desc" }, select: { id: true, date: true, amount: true, description: true } }) : [];
   const realized = withPositions ? await prisma.realizedTrade.findMany({ where: { assetId: id }, orderBy: { closeTime: "desc" } }) : [];
   const realizedTotal = realized.reduce((s, t) => s + t.profitEur, 0);
   const thisYear = new Date().getUTCFullYear();
@@ -79,6 +85,9 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
         {hasCost && (
           <StatTile label={live && live.quoted > 0 ? "Ganho/perda (em direto)" : "Ganho/perda"} value={`${pnlTotal >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnlTotal))}`} delta={costTotal && Math.abs(pnlTotal / costTotal) <= 5 ? pnlTotal / costTotal : null} hint={`custo de aquisição ${fmtEur(costTotal, 0)}`} />
         )}
+        {perfSince && perfSince.gain !== null && (
+          <StatTile label="Rentabilidade" value={perfSince.twr != null ? `${perfSince.twr >= 0 ? "+" : ""}${fmtPct(perfSince.twr)}` : "—"} hint={`ganho ${perfSince.gain >= 0 ? "+" : "-"}${fmtEur(Math.abs(perfSince.gain), 0)} desde ${fmtDate(perfSince.from!)}${perfSince.xirr != null ? ` · XIRR ${perfSince.xirr >= 0 ? "+" : ""}${fmtPct(perfSince.xirr)} a.a.` : ""}`} href="/rentabilidade" />
+        )}
         {realized.length > 0 && (
           <StatTile label="Mais-valias realizadas" value={`${realizedTotal >= 0 ? "+" : "-"}${fmtEur(Math.abs(realizedTotal))}`} hint={`${thisYear}: ${realizedYear >= 0 ? "+" : "-"}${fmtEur(Math.abs(realizedYear))} · ${realized.length} posições fechadas`} />
         )}
@@ -86,7 +95,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card title="Evolução" className="lg:col-span-2"><NetWorthChart data={chart} series={[{ key: "value", name: asset.name }]} stacked={false} /></Card>
-        {editable && <Card title="Registar valor manualmente"><SnapshotForm assetId={asset.id} withPositions={withPositions} /></Card>}
+        {editable && <Card title="Registar valor manualmente"><SnapshotForm assetId={asset.id} withPositions={withPositions} />{isInvestment && <div className="mt-4 border-t border-border pt-3"><h3 className="mb-2 text-sm font-semibold text-ink-2">Fluxos de capital (rentabilidade)</h3><FlowForm assetId={asset.id} flows={manualFlows.map((f) => ({ id: f.id, date: f.date.toISOString(), amount: f.amount, description: f.description }))} /></div>}</Card>}
         {!editable && latest?.positions.length ? <Card title="Composição"><Donut data={latest.positions.map((p) => ({ name: p.name, value: p.valueEur }))} /></Card> : null}
       </div>
       {latest?.positions.length ? (

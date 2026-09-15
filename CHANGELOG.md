@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.5.0 — 2026-09-15
+- Orçamento: limite mensal por categoria de despesa, execução do mês com barras e marcador do dia, alertas (perto/acima do limite) também na visão geral, comparação com o mês anterior e com o mesmo mês do ano anterior.
+- Rentabilidade real: TWR (Dietz modificado mensal encadeado) e XIRR por carteira e para o conjunto dos investimentos, para este ano, 1 ano, 3 anos e desde o início; fluxos de capital detetados nos movimentos (XTB, Optimize) ou nas transferências das contas à ordem, e fluxos manuais na página do ativo.
+
 ## 1.4.1 — 2026-09-15
 - Relatório PDF cobre todos os ativos: inativos e sem valor registado, tabela "Detalhe por ativo" (registos, primeiro/último, variação a 12 meses, movimentos), composição de qualquer ativo com posições (incl. PPR Optimize) com preço médio, ganho/perda e mais-valias realizadas; membros sem ativos também listados.
 

@@ -10,6 +10,8 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.
+- **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
+- **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
 - **Cotações em direto** (Yahoo Finance, sem chave): valor atual das carteiras DEGIRO/XTB, variação do dia e
   ganho face ao último registo; mapeamento ISIN/ticker → símbolo Yahoo automático e editável em
   Administração → Cotações, com links para o Yahoo. `QUOTES_MOCK="true"` simula cotações em desenvolvimento.
