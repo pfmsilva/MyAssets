@@ -20,12 +20,23 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
   const months = series.months.slice(-12);
   const prev = series.months.length >= 2 ? series.months[series.months.length - 2].total : null;
   const latestPositions = await prisma.snapshot.findMany({
-    where: { asset: { active: true, type: { in: ["BROKERAGE", "CRYPTO"] } }, positions: { some: {} } },
+    where: { positions: { some: {} } },
     orderBy: { date: "desc" },
-    include: { positions: { orderBy: { valueEur: "desc" } }, asset: { select: { id: true, name: true } } },
+    include: { positions: { orderBy: { valueEur: "desc" } }, asset: { select: { id: true, name: true, active: true, type: true } } },
   });
   const seenAsset = new Set<string>();
   const positionSnaps = latestPositions.filter((s) => (seenAsset.has(s.assetId) ? false : (seenAsset.add(s.assetId), true)));
+  // every asset, including inactive ones and those without any recorded value
+  const allAssets = await prisma.asset.findMany({
+    orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+    include: {
+      ownerships: { include: { member: true } },
+      snapshots: { orderBy: { date: "desc" }, select: { date: true, value: true, source: true } },
+      _count: { select: { transactions: true, realizedTrades: true } },
+    },
+  });
+  const inactive = allAssets.filter((a) => !a.active);
+  const realizedByAsset = await prisma.realizedTrade.groupBy({ by: ["assetId"], _sum: { profitEur: true }, _count: { _all: true } });
 
   const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true, info: { Title: "Pecúlio · Relatório do património da família", Author: "Pecúlio" } });
   const chunks: Buffer[] = [];
@@ -53,7 +64,9 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
   };
   const h2 = (t: string) => {
     ensure(90);
-    doc.moveDown(0.3).fillColor(C.muted).font("Helvetica-Bold").fontSize(10).text(t.toUpperCase(), left, doc.y, { characterSpacing: 0.5 });
+    doc.moveDown(0.3).fillColor(C.muted).font("Helvetica-Bold").fontSize(10);
+    const label = fit(t.toUpperCase(), W - t.length * 0.5 - 6); // account for characterSpacing
+    doc.text(label, left, doc.y, { width: W, characterSpacing: 0.5, lineBreak: false });
     doc.moveDown(0.3);
   };
   const table = (cols: Col[], rows: Record<string, string>[], opts: { totalRow?: Record<string, string> } = {}) => {
@@ -192,6 +205,56 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
     })),
     { totalRow: { name: "Total", value: fmtEur(total), pct: "100 %" } },
   );
+  if (inactive.length) {
+    h2("Ativos inativos (não contam para os totais)");
+    table(
+      [
+        { title: "Ativo", key: "name", width: 160 },
+        { title: "Tipo", key: "type", width: 120 },
+        { title: "Titulares", key: "owners", width: 120 },
+        { title: "Último valor", key: "value", width: 75, align: "right" },
+        { title: "Data", key: "date", width: W - 475, align: "right" },
+      ],
+      inactive.map((a) => ({
+        name: a.name,
+        type: ASSET_TYPE_LABEL[a.type] ?? a.type,
+        owners: a.ownerships.map((o) => `${o.member.name}${o.percent < 100 ? ` ${o.percent}%` : ""}`).join(", "),
+        value: a.snapshots[0] ? fmtEur(a.snapshots[0].value) : "-",
+        date: a.snapshots[0] ? fmtDate(a.snapshots[0].date) : "-",
+      })),
+    );
+  }
+
+  // ---------- Per asset detail ----------
+  h1("Detalhe por ativo");
+  table(
+    [
+      { title: "Ativo", key: "name", width: 120 },
+      { title: "Instituição", key: "inst", width: 70 },
+      { title: "Registos", key: "n", width: 45, align: "right" },
+      { title: "Primeiro", key: "first", width: 55, align: "right" },
+      { title: "Último", key: "last", width: 55, align: "right" },
+      { title: "Valor", key: "value", width: 70, align: "right" },
+      { title: "12 meses", key: "y", width: 70, align: "right" },
+      { title: "Mov.", key: "tx", width: W - 485, align: "right" },
+    ],
+    allAssets.map((a) => {
+      const latest = a.snapshots[0];
+      const yearAgo = new Date(Date.now() - 365 * 86400e3);
+      const old = a.snapshots.find((s) => s.date <= yearAgo);
+      const y = latest && old ? latest.value - old.value : null;
+      return {
+        name: `${a.name}${a.active ? "" : " (inativo)"}`,
+        inst: a.institution,
+        n: String(a.snapshots.length),
+        first: a.snapshots.length ? fmtDate(a.snapshots[a.snapshots.length - 1].date) : "-",
+        last: latest ? fmtDate(latest.date) : "-",
+        value: latest ? fmtEur(latest.value) : "sem valor",
+        y: y !== null ? `${y >= 0 ? "+" : "-"}${fmtEur(Math.abs(y), 0)}` : "-",
+        tx: a._count.transactions ? String(a._count.transactions) : "-",
+      };
+    }),
+  );
 
   // ---------- Per member ----------
   h1("Património por membro");
@@ -199,7 +262,10 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
     const mine = values
       .map((a) => ({ a, share: (a.owners.find((o) => o.memberId === m.id)?.percent ?? 0) / 100 }))
       .filter((x) => x.share > 0);
-    if (!mine.length) continue;
+    if (!mine.length) {
+      h2(`${m.name} · sem ativos atribuídos`);
+      continue;
+    }
     const mt = mine.reduce((s, x) => s + x.a.value * x.share, 0);
     h2(`${m.name} · ${fmtEur(mt, 0)} (${total ? fmtPct(mt / total, 0) : "0 %"} do total)`);
     table(
@@ -247,27 +313,50 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
 
   // ---------- Positions ----------
   if (positionSnaps.length) {
-    h1("Composição das carteiras");
+    h1("Composição das carteiras e planos");
     for (const snap of positionSnaps) {
-      h2(`${snap.asset.name} · ${fmtEur(snap.value)} em ${fmtDate(snap.date)}`);
+      const withCost = snap.positions.filter((p) => p.costEur !== null);
+      const cost = withCost.reduce((s, p) => s + p.costEur!, 0);
+      const pnl = withCost.reduce((s, p) => s + (p.valueEur - p.costEur!), 0);
+      const realized = realizedByAsset.find((r) => r.assetId === snap.assetId);
+      const bits = [`${fmtEur(snap.value)} em ${fmtDate(snap.date)}`];
+      if (withCost.length) bits.push(`ganho/perda ${pnl >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl), 0)}${cost ? ` (${pnl >= 0 ? "+" : ""}${fmtPct(pnl / cost)})` : ""}`);
+      if (realized?._sum.profitEur !== undefined && realized._sum.profitEur !== null) bits.push(`realizado ${realized._sum.profitEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(realized._sum.profitEur), 0)} em ${realized._count._all} posições fechadas`);
+      h2(`${snap.asset.name}${snap.asset.active ? "" : " (inativo)"} · ${bits.join(" · ")}`);
+      const hasCost = withCost.length > 0;
+      const cols = hasCost
+        ? [
+            { title: "Produto", key: "name", width: 132 },
+            { title: "ISIN / Ticker", key: "isin", width: 50 },
+            { title: "Qtd.", key: "qty", width: 48, align: "right" as const },
+            { title: "P. médio", key: "avg", width: 48, align: "right" as const },
+            { title: "Preço", key: "price", width: 48, align: "right" as const },
+            { title: "Valor", key: "value", width: 62, align: "right" as const },
+            { title: "Ganho/perda", key: "pnl", width: 84, align: "right" as const },
+            { title: "%", key: "pct", width: W - 472, align: "right" as const },
+          ]
+        : [
+            { title: "Produto", key: "name", width: 200 },
+            { title: "ISIN / Ticker", key: "isin", width: 85 },
+            { title: "Qtd.", key: "qty", width: 55, align: "right" as const },
+            { title: "Preço", key: "price", width: 60, align: "right" as const },
+            { title: "Valor", key: "value", width: 75, align: "right" as const },
+            { title: "%", key: "pct", width: W - 475, align: "right" as const },
+          ];
       table(
-        [
-          { title: "Produto", key: "name", width: 200 },
-          { title: "ISIN / Ticker", key: "isin", width: 85 },
-          { title: "Qtd.", key: "qty", width: 55, align: "right" },
-          { title: "Preço", key: "price", width: 60, align: "right" },
-          { title: "Valor", key: "value", width: 75, align: "right" },
-          { title: "%", key: "pct", width: W - 475, align: "right" },
-        ],
-        snap.positions.slice(0, 25).map((p) => ({
+        cols,
+        snap.positions.slice(0, 40).map((p) => ({
           name: p.name,
           isin: p.isin ?? "",
           qty: p.quantity != null ? p.quantity.toLocaleString("pt-PT", { maximumFractionDigits: 4 }) : "",
+          avg: p.avgPrice != null ? p.avgPrice.toLocaleString("pt-PT", { maximumFractionDigits: 3 }) : "",
           price: p.price != null ? p.price.toLocaleString("pt-PT", { maximumFractionDigits: 3 }) : "",
           value: fmtEur(p.valueEur),
+          pnl: p.costEur != null ? `${p.valueEur - p.costEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(p.valueEur - p.costEur), 0)}${p.costEur ? ` (${p.valueEur - p.costEur >= 0 ? "+" : ""}${fmtPct((p.valueEur - p.costEur) / p.costEur, 0)})` : ""}` : "",
           pct: snap.value ? `${((p.valueEur / snap.value) * 100).toFixed(1)} %` : "",
         })),
       );
+      if (snap.positions.length > 40) doc.fillColor(C.faint).font("Helvetica").fontSize(8).text(`… e mais ${snap.positions.length - 40} posições`, left, doc.y);
     }
   }
 

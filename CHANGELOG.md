@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 1.4.1 — 2026-09-15
+- Relatório PDF cobre todos os ativos: inativos e sem valor registado, tabela "Detalhe por ativo" (registos, primeiro/último, variação a 12 meses, movimentos), composição de qualquer ativo com posições (incl. PPR Optimize) com preço médio, ganho/perda e mais-valias realizadas; membros sem ativos também listados.
+
 ## 1.4.0 — 2026-09-15
 - Importador do extrato mensal Optimize (PDF): posições por subconta com quantidade, custo médio, cotação, valia e valorização; valor no fim do mês e valor do mês anterior (histórico); depósitos e subscrições como movimentos.
 - Suporte a importadores assíncronos e a valores anteriores indicados nos ficheiros.
