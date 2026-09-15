@@ -1,6 +1,7 @@
 import { PrismaClient, CategoryKind } from "@prisma/client";
+import { resolveDatabaseUrl } from "../src/lib/db-url";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: resolveDatabaseUrl() });
 
 const MEMBERS = [
   { name: "Paulo", color: "#2a78d6" },
