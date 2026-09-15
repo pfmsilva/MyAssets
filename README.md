@@ -10,6 +10,7 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.
+- **Versão**: versão, commit e data de build visíveis na barra lateral, no login e em Administração → histórico (`CHANGELOG.md`).
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
 - **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls).

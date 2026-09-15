@@ -3,6 +3,7 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { BottomNav, SideNav, NavItem } from "@/components/nav";
 import { hasRole, ROLE_LABEL } from "@/lib/access";
+import { versionLabel, versionTitle } from "@/lib/version";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -35,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
             <button className="btn btn-sm mt-2 w-full" type="submit">Sair</button>
           </form>
+          <p className="mt-2 px-2 text-[10px] text-ink-3" title={versionTitle()}>{versionLabel()}</p>
         </div>
       </aside>
       <div className="min-w-0 flex-1">
@@ -53,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
                 <button className="btn btn-sm mt-1 w-full" type="submit">Sair</button>
               </form>
+              <p className="mt-2 px-2 text-[10px] text-ink-3" title={versionTitle()}>{versionLabel()}</p>
             </div>
           </details>
         </header>

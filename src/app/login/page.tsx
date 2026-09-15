@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { DEV_LOGIN } from "@/auth.config";
+import { versionLabel, versionTitle } from "@/lib/version";
 
 const ERRORS: Record<string, string> = {
   AccessDenied: "Este email não está autorizado. Peça ao administrador para o registar.",
@@ -53,6 +54,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </form>
         )}
         <p className="text-xs text-ink-3">Apenas emails registados pelo administrador têm acesso.</p>
+        <p className="text-[10px] text-ink-3" title={versionTitle()}>{versionLabel()}</p>
       </div>
     </main>
   );

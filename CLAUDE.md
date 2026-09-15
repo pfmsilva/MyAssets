@@ -16,3 +16,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 - Passagem a produção: depois de validar (typecheck, lint, testes), fazer commit e push para o branch de trabalho **e** para `main` (branch de produção no Vercel: `git push origin <branch>:main`). Nunca deixar `main` atrasado em relação ao trabalho concluído.
+- Versão: a cada release, atualizar `version` em `package.json` (semver) e acrescentar a entrada em `CHANGELOG.md`; a app mostra versão + commit + data de build (ver `src/lib/version.ts`).
