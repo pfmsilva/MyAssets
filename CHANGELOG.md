@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.4.0 — 2026-09-15
+- Importador do extrato mensal Optimize (PDF): posições por subconta com quantidade, custo médio, cotação, valia e valorização; valor no fim do mês e valor do mês anterior (histórico); depósitos e subscrições como movimentos.
+- Suporte a importadores assíncronos e a valores anteriores indicados nos ficheiros.
+
 ## 1.3.0 — 2026-09-15
 - Ganho/perda XTB: custo de aquisição e preço médio por posição (do relatório), ganho/perda não realizado com o registo e em direto, por posição e total; coluna na visão geral.
 - Mais-valias realizadas (folha "Closed Positions" da XTB): total, ano corrente e lista de posições fechadas na página do ativo.

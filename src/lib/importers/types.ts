@@ -38,10 +38,11 @@ export type ParsedRealizedTrade = {
 };
 
 export type ParsedImport = {
-  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb";
+  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb" | "optimize";
   transactions: ParsedTransaction[];
   positions: ParsedPosition[];
   realized?: ParsedRealizedTrade[];
+  previousSnapshots?: { date: string; value: number }[]; // earlier valuations stated in the file (e.g. previous month total)
   balance?: number; // total value of the account at balanceDate
   balanceDate?: string;
   meta: Record<string, string>;

@@ -43,7 +43,7 @@ export async function runImport(opts: {
   userId?: string;
 }): Promise<ImportResult> {
   const asset = await prisma.asset.findUniqueOrThrow({ where: { id: opts.assetId } });
-  const parsed: ParsedImport = parseFile(opts.importer, opts.buffer);
+  const parsed: ParsedImport = await parseFile(opts.importer, opts.buffer);
   const warnings = [...parsed.warnings];
   const today = new Date().toISOString().slice(0, 10);
   const balanceDate = opts.snapshotDate || parsed.balanceDate || today;
@@ -106,7 +106,6 @@ export async function runImport(opts: {
   }
 
   // ---- positions + snapshot ----
-  let derivedSnapshots = 0;
   if (parsed.balance !== undefined) {
     const snap = await prisma.snapshot.upsert({
       where: { assetId_date: { assetId: asset.id, date: new Date(balanceDate) } },
@@ -119,6 +118,20 @@ export async function runImport(opts: {
         data: parsed.positions.map((p) => ({ snapshotId: snap.id, name: p.name, isin: p.isin ?? null, quantity: p.quantity ?? null, price: p.price ?? null, currency: p.currency, value: p.value ?? null, valueEur: p.valueEur, avgPrice: p.avgPrice ?? null, costEur: p.costEur ?? null })),
       });
     }
+  }
+
+  let derivedSnapshots = 0;
+  // ---- earlier valuations stated in the file (e.g. previous month total) ----
+  for (const prev of parsed.previousSnapshots ?? []) {
+    const date = new Date(prev.date);
+    const existing = await prisma.snapshot.findUnique({ where: { assetId_date: { assetId: asset.id, date } } });
+    if (existing && existing.source !== "DERIVED") continue;
+    await prisma.snapshot.upsert({
+      where: { assetId_date: { assetId: asset.id, date } },
+      create: { assetId: asset.id, date, value: prev.value, source: "DERIVED", note: `Valor indicado no extrato ${opts.fileName}` },
+      update: { value: prev.value },
+    });
+    if (!existing) derivedSnapshots++;
   }
 
   // ---- realised trades ----

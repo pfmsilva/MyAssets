@@ -13,7 +13,7 @@ function gitSha() {
 
 const nextConfig: NextConfig = {
   experimental: { serverActions: { bodySizeLimit: "20mb" } },
-  serverExternalPackages: ["pdfkit"],
+  serverExternalPackages: ["pdfkit", "pdfjs-dist"],
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
     NEXT_PUBLIC_GIT_SHA: gitSha(),

@@ -24,7 +24,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
   const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance }));
   return (
     <>
-      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx), carteira DEGIRO (.xls) e relatório XTB (.xlsx). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
+      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx), carteira DEGIRO (.xls), relatório XTB (.xlsx) e extrato mensal Optimize (.pdf). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3"><ImportForm assets={assets.map((a) => ({ id: a.id, name: a.name, importer: a.importer }))} importers={importers} initialAsset={asset} /></Card>
         <Card title="Como obter os ficheiros" className="lg:col-span-2 text-sm text-ink-2">
@@ -34,7 +34,8 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
             <li><b>Banco CTT</b>: Conta à Ordem → Movimentos → Exportar (Excel). Não traz saldo: indique o saldo atual da app CTT.</li>
             <li><b>DEGIRO</b>: Carteira → Exportar → XLS. É um retrato do dia; indique a data.</li>
             <li><b>XTB</b>: xStation → Relatórios / Histórico de conta → exportar Excel com posições abertas e operações de caixa desde o início da conta. Regista a carteira à data do relatório (posições + dinheiro) e as operações como movimentos.</li>
-            <li>Ativos sem importador (PPR, Binance, dinheiro): registe o valor na página do ativo.</li>
+            <li><b>Optimize</b>: Espaço Cliente → Consultas → Documentação → extrato mensal (PDF). Regista o valor no fim do mês (posições por subconta, custo médio e valia), o valor do mês anterior e os depósitos/subscrições. Importe os extratos de vários meses para construir o histórico.</li>
+            <li>Ativos sem importador (PPR Save and Grow, Binance, dinheiro): registe o valor na página do ativo.</li>
           </ul>
         </Card>
       </div>

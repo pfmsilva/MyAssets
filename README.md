@@ -16,7 +16,7 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Versão**: versão, commit e data de build visíveis na barra lateral, no login e em Administração → histórico (`CHANGELOG.md`).
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
-- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls), relatório XTB (.xlsx).
+- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls), relatório XTB (.xlsx), extrato mensal Optimize (.pdf).
 - **Registo manual** de valores (e posições) para os restantes ativos.
 - **Histórico** completo: todos os valores importados/registados ficam guardados; os extratos
   geram automaticamente saldos de fim de mês para o passado.
@@ -81,12 +81,13 @@ Sem credenciais Google, definir `AUTH_DEV_LOGIN="true"` no `.env` para um login 
 | Revolut | Extrato → CSV | movimentos (revertidos ignorados, pendentes atualizados) + saldo |
 | Banco CTT | Conta à Ordem → Movimentos → Exportar (.xlsx) | movimentos; sem saldo no ficheiro, por isso pode indicar-se o saldo atual para reconstruir os saldos mensais |
 | DEGIRO | Carteira → Exportar → XLS | posições e valor total (indicar a data) |
+| Optimize | Espaço Cliente → Consultas → Documentação → extrato mensal (.pdf) | posições por subconta (quantidade, custo médio, cotação, valia), valor do fim do mês e do mês anterior, depósitos/subscrições |
 | XTB | xStation → relatório de conta (.xlsx) com Open Positions + Cash Operations (+ Closed Positions) desde o início | posições com custo de aquisição e preço médio + saldo em dinheiro; operações de caixa como movimentos; posições fechadas como mais-valias realizadas |
 
 Movimentos repetidos são detetados por hash (data, descrição, montante, saldo) e ignorados,
 por isso é seguro importar extratos sobrepostos. Cada importação pode ser anulada na página do ativo.
 
-Novos importadores (Binance, PPR): adicionar um parser em `src/lib/importers/` que devolve
+Novos importadores (Binance, PPR Save and Grow): adicionar um parser em `src/lib/importers/` que devolve
 `ParsedImport` e registá-lo em `src/lib/importers/index.ts`.
 
 ## Estrutura

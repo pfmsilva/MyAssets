@@ -3,6 +3,7 @@ import { parseCtt } from "./ctt";
 import { parseDegiro } from "./degiro";
 import { parseRevolut } from "./revolut";
 import { parseXtb } from "./xtb";
+import { parseOptimize } from "./optimize";
 import { ParsedImport } from "./types";
 
 export const IMPORTERS = {
@@ -11,12 +12,13 @@ export const IMPORTERS = {
   degiro: { label: "DEGIRO (carteira .xls/.xlsx)", accept: ".xls,.xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseDegiro(buf) },
   ctt: { label: "Banco CTT (movimentos .xlsx)", accept: ".xlsx,.xls", needsBalance: true, parse: (buf: ArrayBuffer) => parseCtt(buf) },
   xtb: { label: "XTB (relatório de conta .xlsx)", accept: ".xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseXtb(buf) },
+  optimize: { label: "Optimize (extrato mensal .pdf)", accept: ".pdf", needsBalance: false, parse: (buf: ArrayBuffer) => parseOptimize(buf) },
 } as const;
 
 export type ImporterKey = keyof typeof IMPORTERS;
 
-export function parseFile(importer: ImporterKey, buf: ArrayBuffer): ParsedImport {
+export async function parseFile(importer: ImporterKey, buf: ArrayBuffer): Promise<ParsedImport> {
   const imp = IMPORTERS[importer];
   if (!imp) throw new Error(`Importador desconhecido: ${importer}`);
-  return imp.parse(buf);
+  return await (imp.parse as (b: ArrayBuffer) => ParsedImport | Promise<ParsedImport>)(buf);
 }
