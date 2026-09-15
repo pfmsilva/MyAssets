@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.6.0 — 2026-09-15
+- Backups e exportação: Excel com todas as tabelas e backup JSON completo (Administração → Definições); backup semanal por e-mail opcional.
+- Retenção do registo de atividade configurável (dias), limpeza automática na tarefa diária e botão de limpeza imediata.
+- Alertas por e-mail (Resend): ativos sem atualização, variação diária de carteira acima de um limiar, categorias acima do orçamento; destinatários e limiares configuráveis; e-mail de teste e simulação.
+- Tarefa diária agendada (Vercel Cron) com relatório da última execução; registo diário opcional do valor em direto das carteiras.
+- Ícone instalável: PNG 192/512, versões maskable e Apple touch icon; manifest com atalhos.
+
 ## 1.5.0 — 2026-09-15
 - Orçamento: limite mensal por categoria de despesa, execução do mês com barras e marcador do dia, alertas (perto/acima do limite) também na visão geral, comparação com o mês anterior e com o mesmo mês do ano anterior.
 - Rentabilidade real: TWR (Dietz modificado mensal encadeado) e XIRR por carteira e para o conjunto dos investimentos, para este ano, 1 ano, 3 anos e desde o início; fluxos de capital detetados nos movimentos (XTB, Optimize) ou nas transferências das contas à ordem, e fluxos manuais na página do ativo.

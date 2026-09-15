@@ -12,6 +12,7 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   utilizador, tipo, datas e texto.
 - **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
 - **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
+- **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.
 - **Cotações em direto** (Yahoo Finance, sem chave): valor atual das carteiras DEGIRO/XTB, variação do dia e
   ganho face ao último registo; mapeamento ISIN/ticker → símbolo Yahoo automático e editável em
   Administração → Cotações, com links para o Yahoo. `QUOTES_MOCK="true"` simula cotações em desenvolvimento.
@@ -52,6 +53,9 @@ Auth.js v5 (Google) · Recharts · SheetJS.
    | `AUTH_SECRET` | `openssl rand -base64 32` |
    | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | credenciais Google |
    | `ADMIN_EMAIL` | email Google que fica administrador no primeiro login |
+   | `CRON_SECRET` | texto aleatório; autoriza a tarefa diária do Vercel Cron (`/api/cron/daily`) |
+   | `RESEND_API_KEY` / `ALERTS_FROM` | opcional, para alertas e backups por e-mail via https://resend.com (ex.: `Pecúlio <alertas@o-teu-dominio.pt>`; sem domínio próprio usar `onboarding@resend.dev`, que só entrega ao e-mail da conta Resend) |
+   | `APP_URL` | opcional, URL público usado nos e-mails |
 
    O comando de build (`prisma generate && prisma migrate deploy && next build`) cria as tabelas.
 4. **Dados iniciais** (membros, ativos, categorias e regras), uma vez, a partir do teu PC:

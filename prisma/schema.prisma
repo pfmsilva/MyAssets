@@ -303,3 +303,16 @@ model Budget {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+/// Key/value application settings (edited in Administração → Definições).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// Remembers alerts already sent so the daily job does not repeat them.
+model AlertSent {
+  key    String   @id
+  sentAt DateTime @default(now())
+}

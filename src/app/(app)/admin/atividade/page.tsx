@@ -79,7 +79,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink-2">
-        Registo de todas as atividades dos utilizadores: sessões, páginas consultadas, importações, valores registados, categorizações, alterações administrativas e exportações. Últimos 30 dias: <b>{logins30}</b> inícios de sessão, <b>{views30}</b> consultas, <b>{changes30}</b> alterações.
+        Registo de todas as atividades dos utilizadores (retenção configurável em Definições): sessões, páginas consultadas, importações, valores registados, categorizações, alterações administrativas e exportações. Últimos 30 dias: <b>{logins30}</b> inícios de sessão, <b>{views30}</b> consultas, <b>{changes30}</b> alterações.
       </p>
       <Card>
         <form className="grid grid-cols-2 gap-2 md:grid-cols-6" method="get">

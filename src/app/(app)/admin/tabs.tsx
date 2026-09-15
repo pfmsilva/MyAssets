@@ -9,6 +9,7 @@ const TABS = [
   ["/admin/categorias", "Categorias e regras"],
   ["/admin/instrumentos", "Cotações"],
   ["/admin/atividade", "Atividade"],
+  ["/admin/definicoes", "Definições"],
 ];
 
 export function AdminTabs() {
