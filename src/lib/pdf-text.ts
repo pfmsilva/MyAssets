@@ -3,6 +3,7 @@
  * merged into one line, sorted by x; a space is inserted where there is a visible gap.
  */
 export async function pdfLines(buffer: ArrayBuffer): Promise<string[][]> {
+  // The worker file is shipped via outputFileTracingIncludes (next.config.ts); pdf.js loads it in-process in Node.
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const doc = await getDocument({ data: new Uint8Array(buffer.slice(0)), useSystemFonts: true, disableFontFace: true }).promise;
   const pages: string[][] = [];
