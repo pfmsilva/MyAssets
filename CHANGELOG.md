@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 1.7.1 — 2026-09-19
+- Visão geral: os cartões "Património total" e "Investimentos" mostram, em segundo plano, o valor às cotações do momento e a diferença face aos valores registados.
+
 ## 1.7.0 — 2026-09-19
 - Novo tipo de ativo "Carteira de ações (manual)": lista de ações por ISIN e descrição, com cada compra e venda registada à mão (data, quantidade, valor pago e comissão).
 - Valor da carteira calculado ao momento com as cotações do Yahoo Finance (quantidade × cotação, convertida para EUR), com preço médio, ganho/perda por ação e total, variação do dia e mais-valias realizadas nas vendas.

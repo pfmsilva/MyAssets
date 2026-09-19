@@ -25,6 +25,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const live = await getLiveValuations(liveAssets.map((a) => a.id), { resolve: false });
   const liveRows = liveAssets.map((a) => ({ asset: a, v: live.get(a.id) })).filter((r) => r.v && r.v.quoted > 0) as { asset: (typeof values)[number]; v: NonNullable<ReturnType<typeof live.get>> }[];
   const liveDelta = liveRows.reduce((s, r) => s + r.v.delta, 0);
+  const investTotal = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0);
+  // the live figure keeps the last recorded value for whatever has no quote
+  const liveHint = liveRows.length ? `Cotações do Yahoo Finance para ${liveRows.map((r) => r.asset.name).join(", ")}; os restantes ativos mantêm o último valor registado.` : undefined;
+  const liveSecondary = liveRows.length ? { label: "em direto", delta: liveDelta, title: liveHint } : null;
   const liveDay = liveRows.reduce((s, r) => s + r.v.dayChangeEur, 0);
   const months = series.months;
   const prev = months.length >= 2 ? months[months.length - 2].total : null;
@@ -58,8 +62,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </div>
       )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Património total" value={fmtEur(total, 0)} delta={delta} hint={deltaHint} />
-        <StatTile label="Investimentos" value={fmtEur(values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0), 0)} hint="carteiras + cripto" />
+        <StatTile label="Património total" value={fmtEur(total, 0)} delta={delta} hint={deltaHint} secondary={liveSecondary && { ...liveSecondary, value: fmtEur(total + liveDelta, 0) }} />
+        <StatTile label="Investimentos" value={fmtEur(investTotal, 0)} hint="carteiras + cripto" secondary={liveSecondary && { ...liveSecondary, value: fmtEur(investTotal + liveDelta, 0) }} />
         <StatTile label="PPR" value={fmtEur(values.filter((a) => a.type === "PPR").reduce((s, a) => s + a.value, 0), 0)} />
         <StatTile label="Liquidez" value={fmtEur(values.filter((a) => a.type === "CURRENT_ACCOUNT" || a.type === "CASH").reduce((s, a) => s + a.value, 0), 0)} hint="contas à ordem + dinheiro" />
       </div>

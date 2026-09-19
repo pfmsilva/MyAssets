@@ -27,11 +27,38 @@ export function Card({ title, children, className = "", action }: { title?: Reac
   );
 }
 
-export function StatTile({ label, value, delta, hint, href }: { label: string; value: string; delta?: number | null; hint?: string; href?: string }) {
+export function StatTile({
+  label,
+  value,
+  delta,
+  hint,
+  href,
+  secondary,
+}: {
+  label: string;
+  value: string;
+  delta?: number | null;
+  hint?: string;
+  href?: string;
+  /** A second, quieter figure under the headline (e.g. the same total at live market prices). */
+  secondary?: { label: string; value: string; delta?: number | null; title?: string } | null;
+}) {
   const body = (
     <div className="card h-full">
       <p className="text-xs font-medium uppercase tracking-wide text-ink-3">{label}</p>
       <p className="num mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+      {secondary && (
+        <p className="mt-0.5 text-sm text-ink-2" title={secondary.title}>
+          <span className="text-xs text-ink-3">{secondary.label} </span>
+          <span className="num font-medium">{secondary.value}</span>
+          {secondary.delta !== undefined && secondary.delta !== null && (
+            <span className={`num ml-1 text-xs font-medium ${secondary.delta >= 0 ? "text-good" : "text-bad"}`}>
+              {secondary.delta >= 0 ? "+" : "−"}
+              {fmtEur(Math.abs(secondary.delta), 0)}
+            </span>
+          )}
+        </p>
+      )}
       {delta !== undefined && delta !== null && (
         <p className={`mt-1 text-xs font-medium ${delta >= 0 ? "text-good" : "text-bad"}`}>
           <span className="num">{delta >= 0 ? "▲" : "▼"} {fmtPct(Math.abs(delta))}</span>
