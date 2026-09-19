@@ -5,6 +5,7 @@ import { buildBackupJson } from "./export";
 import { getCurrentValues } from "./analytics";
 import { getLiveValuations } from "./quotes";
 import { getBudgetOverview } from "./budget";
+import { syncPortfolioSnapshot } from "./stock-portfolio";
 import { fmtDate, fmtEur, fmtPct } from "./format";
 
 export type JobReport = { ranAt: string; steps: { name: string; result: string }[] };
@@ -26,10 +27,27 @@ export async function purgeActivity(days: number) {
   return r.count;
 }
 
+/** Recomputes every manual stock portfolio from its trades and current quotes. Runs daily and never throws. */
+export async function syncStockPortfolios() {
+  const assets = await prisma.asset.findMany({ where: { active: true, type: "STOCK_PORTFOLIO" }, select: { id: true, name: true } });
+  let synced = 0;
+  const errors: string[] = [];
+  for (const a of assets) {
+    try {
+      const r = await syncPortfolioSnapshot(a.id, { force: true });
+      if (r.skipped) errors.push(`${a.name}: ${r.skipped}`);
+      else synced++;
+    } catch (e) {
+      errors.push(`${a.name}: ${e instanceof Error ? e.message.slice(0, 80) : "erro"}`);
+    }
+  }
+  return { synced, total: assets.length, errors };
+}
+
 /** Saves today's live value of portfolios with quotes as a snapshot (source DERIVED), keeping imports untouched. */
 export async function saveDailySnapshots() {
   const values = await getCurrentValues();
-  const ids = values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO").map((a) => a.id);
+  const ids = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").map((a) => a.id);
   const live = await getLiveValuations(ids, { resolve: true });
   const today = new Date(new Date().toISOString().slice(0, 10));
   let saved = 0;
@@ -58,7 +76,15 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
     steps.push({ name: "Retenção do registo de atividade", result: `erro: ${e instanceof Error ? e.message : e}` });
   }
 
-  // 2. daily snapshots
+  // 2a. manual stock portfolios are always recomputed (their value only exists here)
+  try {
+    const r = await syncStockPortfolios();
+    if (r.total) steps.push({ name: "Carteiras de ações (manuais)", result: `${r.synced} de ${r.total} atualizadas${r.errors.length ? ` · ${r.errors.join("; ")}` : ""}` });
+  } catch (e) {
+    steps.push({ name: "Carteiras de ações (manuais)", result: `erro: ${e instanceof Error ? e.message : e}` });
+  }
+
+  // 2b. daily snapshots
   if (s.dailySnapshot) {
     try {
       const r = await saveDailySnapshots();
@@ -76,7 +102,7 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
     for (const a of stale) alerts.push({ key: `stale:${a.id}`, title: `${a.name} sem atualização`, html: `<b>${a.name}</b> não tem valor registado há mais de ${s.alertStaleDays} dias (último: ${a.date ? fmtDate(a.date) : "nunca"}).`, repeatDays: 7 });
   }
   if (s.alertMovePct > 0) {
-    const ids = values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO").map((a) => a.id);
+    const ids = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").map((a) => a.id);
     const live = await getLiveValuations(ids, { resolve: false });
     for (const [assetId, v] of live) {
       if (v.dayChangePct !== null && Math.abs(v.dayChangePct) * 100 >= s.alertMovePct) {

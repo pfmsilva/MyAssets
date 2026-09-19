@@ -165,7 +165,7 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
 
   // ---------- KPIs ----------
   const liquid = values.filter((a) => a.type === "CURRENT_ACCOUNT" || a.type === "CASH").reduce((s, a) => s + a.value, 0);
-  const invest = values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0);
+  const invest = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0);
   const ppr = values.filter((a) => a.type === "PPR").reduce((s, a) => s + a.value, 0);
   kpi([
     { label: "Património total", value: fmtEur(total, 0), hint: prev ? `${total - prev >= 0 ? "+" : "-"}${fmtEur(Math.abs(total - prev), 0)} vs. mês anterior` : undefined },

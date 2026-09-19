@@ -21,7 +21,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const scope = await getScope(user);
   const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds })]);
   const total = values.reduce((s, a) => s + a.value, 0);
-  const liveAssets = values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO");
+  const liveAssets = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO");
   const live = await getLiveValuations(liveAssets.map((a) => a.id), { resolve: false });
   const liveRows = liveAssets.map((a) => ({ asset: a, v: live.get(a.id) })).filter((r) => r.v && r.v.quoted > 0) as { asset: (typeof values)[number]; v: NonNullable<ReturnType<typeof live.get>> }[];
   const liveDelta = liveRows.reduce((s, r) => s + r.v.delta, 0);
@@ -59,7 +59,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Património total" value={fmtEur(total, 0)} delta={delta} hint={deltaHint} />
-        <StatTile label="Investimentos" value={fmtEur(values.filter((a) => a.type === "BROKERAGE" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0), 0)} hint="carteiras + cripto" />
+        <StatTile label="Investimentos" value={fmtEur(values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0), 0)} hint="carteiras + cripto" />
         <StatTile label="PPR" value={fmtEur(values.filter((a) => a.type === "PPR").reduce((s, a) => s + a.value, 0), 0)} />
         <StatTile label="Liquidez" value={fmtEur(values.filter((a) => a.type === "CURRENT_ACCOUNT" || a.type === "CASH").reduce((s, a) => s + a.value, 0), 0)} hint="contas à ordem + dinheiro" />
       </div>

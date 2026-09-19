@@ -17,6 +17,8 @@ import { getNetWorthSeries } from "@/lib/analytics";
 import { getLiveValuations } from "@/lib/quotes";
 import { computeAssetPerf, getAssetFlows } from "@/lib/performance";
 import { FlowForm } from "@/components/FlowForm";
+import { StockPortfolio } from "@/components/StockPortfolio";
+import { getPortfolio } from "@/lib/stock-portfolio";
 import { QuoteRefresh } from "@/components/QuoteRefresh";
 import { Delta } from "@/components/LiveBadge";
 
@@ -48,7 +50,9 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
     getNetWorthSeries({ assetId: id }),
   ]);
   const latest = asset.snapshots[0];
-  const withPositions = asset.type === "BROKERAGE" || asset.type === "CRYPTO";
+  const isStockPortfolio = asset.type === "STOCK_PORTFOLIO";
+  const withPositions = asset.type === "BROKERAGE" || asset.type === "CRYPTO" || isStockPortfolio;
+  const portfolio = isStockPortfolio ? await getPortfolio(id) : null;
   const live = withPositions && latest?.positions.length ? (await getLiveValuations([asset.id])).get(asset.id) ?? null : null;
   const liveByPos = new Map(live?.positions.map((p) => [p.id, p]) ?? []);
   // unrealised P/L from acquisition cost (live value when available, else the recorded value)
@@ -56,7 +60,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   const costTotal = costPositions.reduce((s, p) => s + p.costEur!, 0);
   const pnlTotal = costPositions.reduce((s, p) => s + ((liveByPos.get(p.id)?.liveValueEur ?? p.valueEur) - p.costEur!), 0);
   const hasCost = costPositions.length > 0;
-  const isInvestment = asset.type === "BROKERAGE" || asset.type === "PPR" || asset.type === "CRYPTO";
+  const isInvestment = asset.type === "BROKERAGE" || asset.type === "STOCK_PORTFOLIO" || asset.type === "PPR" || asset.type === "CRYPTO";
   const perf = isInvestment && asset.snapshots.length ? computeAssetPerf(asset, asset.snapshots, await getAssetFlows(asset)) : null;
   const perfSince = perf?.periods.at(-1);
   const manualFlows = isInvestment ? await prisma.transaction.findMany({ where: { assetId: id, kind: "Fluxo manual" }, orderBy: { date: "desc" }, select: { id: true, date: true, amount: true, description: true } }) : [];
@@ -95,10 +99,50 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card title="Evolução" className="lg:col-span-2"><NetWorthChart data={chart} series={[{ key: "value", name: asset.name }]} stacked={false} /></Card>
-        {editable && <Card title="Registar valor manualmente"><SnapshotForm assetId={asset.id} withPositions={withPositions} />{isInvestment && <div className="mt-4 border-t border-border pt-3"><h3 className="mb-2 text-sm font-semibold text-ink-2">Fluxos de capital (rentabilidade)</h3><FlowForm assetId={asset.id} flows={manualFlows.map((f) => ({ id: f.id, date: f.date.toISOString(), amount: f.amount, description: f.description }))} /></div>}</Card>}
+        {editable && <Card title={isStockPortfolio ? "Fluxos e valor" : "Registar valor manualmente"}>{isStockPortfolio ? <p className="text-sm text-ink-2">O valor desta carteira é calculado a partir das ações e das compras/vendas registadas abaixo, com as cotações do Yahoo Finance. É atualizado sempre que registar uma operação e uma vez por dia.</p> : <SnapshotForm assetId={asset.id} withPositions={withPositions} />}{isInvestment && <div className="mt-4 border-t border-border pt-3"><h3 className="mb-2 text-sm font-semibold text-ink-2">Fluxos de capital (rentabilidade)</h3><FlowForm assetId={asset.id} flows={manualFlows.map((f) => ({ id: f.id, date: f.date.toISOString(), amount: f.amount, description: f.description }))} /></div>}</Card>}
         {!editable && latest?.positions.length ? <Card title="Composição"><Donut data={latest.positions.map((p) => ({ name: p.name, value: p.valueEur }))} /></Card> : null}
       </div>
-      {latest?.positions.length ? (
+      {portfolio && (
+        <Card
+          title={`Ações da carteira (${portfolio.holdings.filter((h) => h.state.quantity > 0).length} em carteira${portfolio.holdings.length !== portfolio.holdings.filter((h) => h.state.quantity > 0).length ? `, ${portfolio.holdings.length - portfolio.holdings.filter((h) => h.state.quantity > 0).length} fechadas` : ""})`}
+          className="mt-4"
+          action={<span className="text-xs text-ink-3">Valor calculado com as cotações do Yahoo Finance</span>}
+        >
+          <StockPortfolio
+            editable={editable}
+            data={{
+              assetId: asset.id,
+              totals: portfolio.totals,
+              quotesAt: portfolio.quotesAt ? portfolio.quotesAt.toISOString() : null,
+              error: portfolio.error,
+              holdings: portfolio.holdings.map((h) => ({
+                id: h.id,
+                isin: h.isin,
+                name: h.name,
+                note: h.note,
+                symbol: h.symbol,
+                manualSymbol: h.manualSymbol,
+                yahooUrl: h.yahooUrl,
+                quoteError: h.quoteError,
+                quantity: h.state.quantity,
+                avgPrice: h.state.avgPrice,
+                costEur: h.state.costEur,
+                realizedEur: h.state.realizedEur,
+                livePrice: h.livePrice,
+                liveCurrency: h.liveCurrency,
+                liveValueEur: h.liveValueEur,
+                dayChangePct: h.dayChangePct,
+                valueEur: h.valueEur,
+                pnlEur: h.pnlEur,
+                pnlPct: h.pnlPct,
+                warning: h.state.warning,
+                trades: h.trades.map((t) => ({ id: t.id, date: t.date.toISOString(), quantity: t.quantity, amount: t.amount, fee: t.fee, note: t.note })),
+              })),
+            }}
+          />
+        </Card>
+      )}
+      {latest?.positions.length && !isStockPortfolio ? (
         <Card title={`Posições em ${fmtDate(latest.date)}`} className="mt-4">
           <div className={live ? "space-y-4" : "grid gap-4 lg:grid-cols-5"}>
             <div className={live ? "min-w-0" : "min-w-0 lg:col-span-2"}><Donut data={latest.positions.map((p) => ({ name: p.name, value: liveByPos.get(p.id)?.liveValueEur ?? p.valueEur }))} centerLabel={live ? "em direto" : undefined} /></div>

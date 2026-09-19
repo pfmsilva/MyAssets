@@ -75,7 +75,7 @@ export default async function AssetsAdmin() {
           ))}
         </ul>
       </Card>
-      <Card title="Adicionar ativo"><ActionForm action={upsertAsset} submitLabel="Adicionar">{renderFields()}</ActionForm></Card>
+      <Card title="Adicionar ativo"><p className="mb-3 text-sm text-ink-2">Para gerir ações à mão (ISIN, descrição e cada compra/venda, com o valor calculado pelas cotações do Yahoo), escolha o tipo <b>Carteira de ações (manual)</b> e depois abra o ativo para adicionar as ações.</p><ActionForm action={upsertAsset} submitLabel="Adicionar">{renderFields()}</ActionForm></Card>
     </div>
   );
 }

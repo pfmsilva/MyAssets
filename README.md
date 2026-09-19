@@ -21,6 +21,7 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
 - **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls), relatório XTB (.xlsx), extrato mensal Optimize (.pdf).
 - **Registo manual** de valores (e posições) para os restantes ativos.
+- **Carteira de ações (manual)**: tipo de ativo em que se indica cada ação por ISIN e descrição e se registam as compras/vendas; o valor, o preço médio e o ganho/perda são calculados com as cotações do Yahoo Finance.
 - **Histórico** completo: todos os valores importados/registados ficam guardados; os extratos
   geram automaticamente saldos de fim de mês para o passado.
 - **Dashboards**: distribuição por tipo/instituição/membro, ativos de cada membro (com titularidade em %),

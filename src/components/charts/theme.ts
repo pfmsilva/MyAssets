@@ -3,6 +3,7 @@ export const SERIES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(
 export const TYPE_COLORS: Record<string, string> = {
   CURRENT_ACCOUNT: "var(--s1)",
   BROKERAGE: "var(--s2)",
+  STOCK_PORTFOLIO: "var(--s6)",
   PPR: "var(--s3)",
   CRYPTO: "var(--s4)",
   CASH: "var(--s5)",

@@ -17,6 +17,7 @@ enum AssetType {
   CURRENT_ACCOUNT
   PPR
   BROKERAGE
+  STOCK_PORTFOLIO
   CRYPTO
   CASH
   OTHER
@@ -117,6 +118,7 @@ model Asset {
   transactions Transaction[]
   importBatches ImportBatch[]
   realizedTrades RealizedTrade[]
+  holdings     Holding[]
   createdAt    DateTime         @default(now())
 }
 
@@ -315,4 +317,37 @@ model Setting {
 model AlertSent {
   key    String   @id
   sentAt DateTime @default(now())
+}
+
+/// A stock in a manually managed portfolio (asset of type STOCK_PORTFOLIO).
+model Holding {
+  id        String   @id @default(cuid())
+  assetId   String
+  isin      String
+  name      String
+  symbol    String?  // Yahoo Finance symbol; resolved from the ISIN when empty
+  note      String?
+  sortOrder Int      @default(0)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  trades    Trade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([assetId, isin])
+  @@index([assetId])
+}
+
+/// A manually entered purchase (quantity > 0) or sale (quantity < 0) of a holding.
+model Trade {
+  id        String   @id @default(cuid())
+  holdingId String
+  date      DateTime @db.Date
+  quantity  Float
+  amount    Float    // total paid (purchase) or received (sale), in EUR, always positive
+  fee       Float    @default(0)
+  note      String?
+  holding   Holding  @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([holdingId, date])
 }

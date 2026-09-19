@@ -31,6 +31,7 @@ export const ASSET_TYPE_LABEL: Record<string, string> = {
   CURRENT_ACCOUNT: "Conta à ordem",
   PPR: "PPR",
   BROKERAGE: "Carteira de investimentos",
+  STOCK_PORTFOLIO: "Carteira de ações (manual)",
   CRYPTO: "Criptomoedas",
   CASH: "Dinheiro físico",
   OTHER: "Outro",

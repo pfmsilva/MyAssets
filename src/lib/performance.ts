@@ -162,7 +162,7 @@ export function computeAssetPerf(asset: { id: string; name: string; type: string
 /** Performance of investment assets (brokerage, PPR, crypto) plus the combined portfolio. */
 export async function getPerformance(assetIds?: string[]) {
   const assets = await prisma.asset.findMany({
-    where: { active: true, type: { in: ["BROKERAGE", "PPR", "CRYPTO"] }, ...(assetIds ? { id: { in: assetIds } } : {}) },
+    where: { active: true, type: { in: ["BROKERAGE", "STOCK_PORTFOLIO", "PPR", "CRYPTO"] }, ...(assetIds ? { id: { in: assetIds } } : {}) },
     orderBy: { sortOrder: "asc" },
     include: { snapshots: { orderBy: { date: "asc" }, select: { date: true, value: true } } },
   });

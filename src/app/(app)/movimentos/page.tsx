@@ -47,12 +47,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     <>
       <PageHeader title="Movimentos" subtitle={`${count} movimentos · soma ${new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(sum._sum.amount ?? 0)}`} actions={editable ? <ConfirmButton className="btn btn-sm" label="Reaplicar regras aos sem categoria" action={async () => { "use server"; await reapplyRules(false); }} /> : undefined} />
       <Card className="mb-4">
-        <form className="grid grid-cols-2 gap-2 md:grid-cols-6" method="get">
-          <input name="q" placeholder="Pesquisar descrição" defaultValue={sp.q ?? ""} className="col-span-2" />
+        <form className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-6" method="get">
+          <input name="q" placeholder="Pesquisar descrição" defaultValue={sp.q ?? ""} className="min-w-0 sm:col-span-2" />
           <select name="asset" defaultValue={sp.asset ?? ""}><option value="">Todas as contas</option>{assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
           <select name="category" defaultValue={sp.category ?? ""}><option value="">Todas as categorias</option><option value="none">Sem categoria</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
           <input name="month" type="month" defaultValue={sp.month ?? ""} />
-          <div className="flex gap-1">
+          <div className="flex min-w-0 gap-1">
             <select name="sign" defaultValue={sp.sign ?? ""} className="flex-1"><option value="">Entradas e saídas</option><option value="out">Saídas</option><option value="in">Entradas</option></select>
             <button className="btn btn-primary" type="submit">Filtrar</button>
           </div>

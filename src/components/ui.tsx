@@ -15,10 +15,10 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 
 export function Card({ title, children, className = "", action }: { title?: React.ReactNode; children: React.ReactNode; className?: string; action?: React.ReactNode }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card min-w-0 ${className}`}>
       {(title || action) && (
-        <div className="mb-3 flex items-center justify-between gap-2">
-          {title && <h2 className="text-sm font-semibold text-ink-2">{title}</h2>}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          {title && <h2 className="min-w-0 break-words text-sm font-semibold text-ink-2">{title}</h2>}
           {action}
         </div>
       )}

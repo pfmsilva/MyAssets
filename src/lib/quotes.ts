@@ -17,9 +17,12 @@ export type QuoteResult = {
   quoteType?: string;
 };
 export type SearchResult = { symbol: string; exchange?: string; exchDisp?: string; quoteType?: string; shortname?: string; longname?: string };
+export type HistoricalPoint = { date: Date; close: number };
 export type QuoteClient = {
   quote(symbols: string[]): Promise<QuoteResult[]>;
   search(query: string): Promise<SearchResult[]>;
+  /** Monthly closes between the two dates (used to rebuild portfolio history). */
+  historical?(symbol: string, from: Date, to: Date): Promise<HistoricalPoint[]>;
 };
 
 export const QUOTE_TTL_MS = 15 * 60 * 1000;
@@ -48,6 +51,12 @@ function realClient(): QuoteClient {
       const r = (await yf.search(query, { quotesCount: 10, newsCount: 0 }, { validateResult: false })) as unknown as { quotes?: SearchResult[] };
       return (r.quotes ?? []).filter((q) => q && typeof q.symbol === "string");
     },
+    async historical(symbol, from, to) {
+      const r = (await yf.chart(symbol, { period1: from, period2: to, interval: "1mo" }, { validateResult: false })) as unknown as { quotes?: { date: Date | string | number; close: number | null; adjclose?: number | null }[] };
+      return (r.quotes ?? [])
+        .map((q) => ({ date: q.date instanceof Date ? q.date : new Date(typeof q.date === "number" ? q.date * 1000 : q.date), close: q.close ?? q.adjclose ?? 0 }))
+        .filter((q) => q.close > 0 && !Number.isNaN(q.date.getTime()));
+    },
   };
 }
 
@@ -70,7 +79,23 @@ function mockClient(): QuoteClient {
     async search(query) {
       return [{ symbol: `${query.slice(0, 4).toUpperCase()}.DE`, exchange: "GER", exchDisp: "XETRA", quoteType: "ETF", shortname: `Simulado ${query}` }];
     },
+    async historical(symbol, from, to) {
+      const out: HistoricalPoint[] = [];
+      const base = priceFor(symbol);
+      const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
+      let i = 0;
+      while (d.getTime() <= to.getTime()) {
+        out.push({ date: new Date(d), close: Math.round(base * (0.75 + 0.02 * i) * 100) / 100 });
+        d.setUTCMonth(d.getUTCMonth() + 1);
+        i++;
+      }
+      return out;
+    },
   };
+}
+
+export function quoteClient(): QuoteClient {
+  return getClient();
 }
 
 function getClient(): QuoteClient {
@@ -274,7 +299,8 @@ export type LiveValuation = {
   positions: LivePosition[];
 };
 
-function toEur(price: number, currency: string, quotes: Map<string, { price: number }>): number | null {
+/** Converts a quoted price to EUR using the cached FX pairs (Yahoo quotes LSE prices in pence). */
+export function toEur(price: number, currency: string, quotes: Map<string, { price: number }>): number | null {
   const c = currency.toUpperCase();
   if (c === "EUR") return price;
   const base = c === "GBP" || c === "GBX" ? price / 100 : price; // Yahoo returns LSE prices in pence (GBp)
