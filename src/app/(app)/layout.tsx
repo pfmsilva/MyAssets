@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/despesas", label: "Despesas", icon: "receipt" },
     { href: "/orcamento", label: "Orçamento", icon: "target" },
     { href: "/rentabilidade", label: "Rentabilidade", icon: "trend" },
+    { href: "/alocacao", label: "Alocação", icon: "pie" },
     { href: "/movimentos", label: "Movimentos", icon: "list" },
   ];
   if (hasRole(user.role, "EDITOR")) items.push({ href: "/importar", label: "Importar", icon: "upload" });

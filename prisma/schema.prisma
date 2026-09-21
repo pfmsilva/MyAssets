@@ -13,6 +13,18 @@ enum Role {
   VIEWER
 }
 
+/// Investment class used for the target allocation.
+enum AssetClass {
+  EQUITY
+  BOND
+  GOLD
+  CRYPTO
+  CASH
+  REAL_ESTATE
+  MIXED
+  OTHER
+}
+
 enum AssetType {
   CURRENT_ACCOUNT
   PPR
@@ -111,6 +123,7 @@ model Asset {
   type         AssetType
   currency     String           @default("EUR")
   importer     String?          // bpi | revolut | degiro
+  assetClass   AssetClass?      // default class for assets without detailed positions
   active       Boolean          @default(true)
   sortOrder    Int              @default(0)
   ownerships   AssetOwnership[]
@@ -275,6 +288,7 @@ model Instrument {
   key        String    @unique
   name       String
   symbol     String?
+  assetClass AssetClass?
   manual     Boolean   @default(false)
   lastError  String?
   resolvedAt DateTime?
@@ -368,4 +382,12 @@ model ProofOfLifeCheck {
   createdAt      DateTime  @default(now())
 
   @@index([sentAt])
+}
+
+/// Desired weight of one asset class in the family portfolio (percentages add up to 100).
+model AllocationTarget {
+  assetClass AssetClass @id
+  percent    Float
+  note       String?
+  updatedAt  DateTime   @updatedAt
 }

@@ -1,7 +1,9 @@
 import PDFDocument from "pdfkit";
 import { prisma } from "./prisma";
 import { byMember, getCurrentValues, getExpenseSeries, getNetWorthSeries, groupBy } from "./analytics";
-import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtPct, monthLabel } from "./format";
+import { ASSET_CLASS_LABEL, ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtPct, monthLabel } from "./format";
+import { getAllocation } from "./allocation";
+import { getSettings } from "./settings";
 
 const C = { text: "#0b0b0b", muted: "#52514e", faint: "#8a8985", line: "#e4e3df", accent: "#2a78d6", soft: "#f0efec" };
 const SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
@@ -37,6 +39,7 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
   });
   const inactive = allAssets.filter((a) => !a.active);
   const realizedByAsset = await prisma.realizedTrade.groupBy({ by: ["assetId"], _sum: { profitEur: true }, _count: { _all: true } });
+  const allocation = await getAllocation({ live: false, bandPp: (await getSettings()).allocationBandPp }).catch(() => null);
 
   const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true, info: { Title: "Pecúlio · Relatório do património da família", Author: "Pecúlio" } });
   const chunks: Buffer[] = [];
@@ -255,6 +258,40 @@ export async function buildFamilyReport(generatedBy: string): Promise<Buffer> {
       };
     }),
   );
+
+  // ---------- Allocation ----------
+  if (allocation && allocation.rows.some((r) => r.current > 0)) {
+    h1("Alocação por classe de ativo");
+    if (allocation.targetTotal > 0) {
+      table(
+        [
+          { title: "Classe", key: "name", width: 150 },
+          { title: "Valor", key: "value", width: 85, align: "right" },
+          { title: "Peso", key: "pct", width: 55, align: "right" },
+          { title: "Alvo", key: "target", width: 55, align: "right" },
+          { title: "Desvio", key: "drift", width: 60, align: "right" },
+          { title: "Ajustar", key: "delta", width: W - 405, align: "right" },
+        ],
+        allocation.rows
+          .filter((r) => r.current > 0 || r.targetPct)
+          .map((r) => ({
+            name: ASSET_CLASS_LABEL[r.assetClass] ?? r.assetClass,
+            value: fmtEur(r.current, 0),
+            pct: fmtPct(r.currentPct, 1),
+            target: r.targetPct !== null ? fmtPct(r.targetPct, 1) : "-",
+            drift: r.driftPp !== null ? `${r.driftPp > 0 ? "+" : ""}${r.driftPp.toFixed(1)} pp` : "-",
+            delta: r.delta !== null ? `${r.delta > 0 ? "+" : ""}${fmtEur(r.delta, 0)}` : "-",
+          })),
+        { totalRow: { name: "Total", value: fmtEur(allocation.total, 0), pct: "100 %", target: allocation.targetTotal ? `${allocation.targetTotal.toFixed(0)} %` : "" } },
+      );
+      if (allocation.newMoneyNeeded !== null && allocation.newMoneyNeeded > 0) {
+        doc.fillColor(C.muted).font("Helvetica").fontSize(8.5).text(`Reforço necessário para equilibrar sem vender: ${fmtEur(allocation.newMoneyNeeded, 0)} (tolerância de ${allocation.bandPp} pp).`, left, doc.y, { width: W });
+        doc.y += 12;
+      }
+    } else {
+      legendBars(allocation.rows.filter((r) => r.current > 0).map((r) => ({ name: ASSET_CLASS_LABEL[r.assetClass] ?? r.assetClass, value: r.current })));
+    }
+  }
 
   // ---------- Per member ----------
   h1("Património por membro");

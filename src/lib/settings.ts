@@ -17,6 +17,7 @@ export type Settings = {
   polBeneficiaryRole: "VIEWER" | "EDITOR" | "ADMIN";
   polMessage: string; // note included in the release e-mail
   polLoginCounts: boolean; // signing in as administrator also counts as proof of life
+  allocationBandPp: number; // tolerance around each target, in percentage points
 };
 
 export const DEFAULTS: Settings = {
@@ -35,6 +36,7 @@ export const DEFAULTS: Settings = {
   polBeneficiaryRole: "VIEWER",
   polMessage: "",
   polLoginCounts: true,
+  allocationBandPp: 5,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -58,6 +60,7 @@ export async function getSettings(): Promise<Settings> {
     polBeneficiaryRole: (["VIEWER", "EDITOR", "ADMIN"].includes(map.get("polBeneficiaryRole") ?? "") ? map.get("polBeneficiaryRole") : DEFAULTS.polBeneficiaryRole) as Settings["polBeneficiaryRole"],
     polMessage: map.get("polMessage") ?? DEFAULTS.polMessage,
     polLoginCounts: bool("polLoginCounts"),
+    allocationBandPp: Number.isFinite(num("allocationBandPp")) && num("allocationBandPp") >= 0 ? num("allocationBandPp") : DEFAULTS.allocationBandPp,
   };
 }
 

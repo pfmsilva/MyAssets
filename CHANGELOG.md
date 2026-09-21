@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.9.0 — 2026-09-21
+- Alocação-alvo: repartição do património por classe de ativo (ações, obrigações, ouro, cripto, liquidez, imobiliário, fundos mistos), com peso-alvo por classe, tolerância configurável, desvio em pontos percentuais e o montante a comprar ou vender para voltar ao alvo.
+- Sugestão de reequilíbrio só com dinheiro novo, sem vender nada, e o reforço total necessário.
+- Classificação automática das posições pelo nome (ouro, obrigações, cripto, liquidez), corrigível por posição e guardada para todas as carteiras.
+- Secção de alocação no relatório PDF; a composição das carteiras deixa de ser escondida pelo valor diário automático.
+
 ## 1.8.0 — 2026-09-21
 - Prova de vida: de X em X dias é enviado um e-mail com um link de confirmação às pessoas indicadas; basta uma confirmar para o ciclo recomeçar.
 - Se ninguém confirmar em Y dias, os acessos à aplicação são atribuídos automaticamente às pessoas definidas, que recebem o link e o relatório do património em PDF; os titulares são avisados por e-mail.

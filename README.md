@@ -10,6 +10,7 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.
+- **Alocação-alvo**: peso pretendido por classe de ativo, desvio face ao atual e reequilíbrio (a vender/comprar ou só com reforços).
 - **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
 - **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
 - **Prova de vida**: e-mail periódico com link de confirmação; sem confirmação dentro do prazo, os acessos

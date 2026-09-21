@@ -37,6 +37,28 @@ export const ASSET_TYPE_LABEL: Record<string, string> = {
   OTHER: "Outro",
 };
 
+export const ASSET_CLASS_LABEL: Record<string, string> = {
+  EQUITY: "Ações",
+  BOND: "Obrigações",
+  GOLD: "Ouro e matérias-primas",
+  CRYPTO: "Criptomoedas",
+  CASH: "Liquidez",
+  REAL_ESTATE: "Imobiliário",
+  MIXED: "Fundos mistos",
+  OTHER: "Outros",
+};
+
+export const ASSET_CLASS_COLOR: Record<string, string> = {
+  EQUITY: "var(--s1)",
+  BOND: "var(--s3)",
+  GOLD: "var(--s4)",
+  CRYPTO: "var(--s7)",
+  CASH: "var(--s5)",
+  REAL_ESTATE: "var(--s2)",
+  MIXED: "var(--s6)",
+  OTHER: "var(--s8)",
+};
+
 export const CATEGORY_KIND_LABEL: Record<string, string> = {
   EXPENSE: "Despesa",
   INCOME: "Rendimento",
