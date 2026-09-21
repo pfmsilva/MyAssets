@@ -351,3 +351,21 @@ model Trade {
 
   @@index([holdingId, date])
 }
+
+/// One proof-of-life cycle: an e-mail with a confirmation link that must be clicked before `dueAt`.
+model ProofOfLifeCheck {
+  id             String    @id @default(cuid())
+  token          String    @unique
+  sentAt         DateTime  @default(now())
+  dueAt          DateTime
+  recipients     String
+  remindersSent  Int       @default(0)
+  confirmedAt    DateTime?
+  confirmedBy    String?
+  triggeredAt    DateTime?
+  releasedTo     String?
+  resolvedAt     DateTime? // an administrator restarted the cycle after a release
+  createdAt      DateTime  @default(now())
+
+  @@index([sentAt])
+}

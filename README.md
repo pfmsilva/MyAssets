@@ -12,6 +12,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   utilizador, tipo, datas e texto.
 - **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
 - **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
+- **Prova de vida**: e-mail periódico com link de confirmação; sem confirmação dentro do prazo, os acessos
+  são entregues às pessoas definidas com o relatório do património em anexo (Administração → Definições).
+  Requer `RESEND_API_KEY`, `ALERTS_FROM` e `APP_URL`.
 - **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.
 - **Cotações em direto** (Yahoo Finance, sem chave): valor atual das carteiras DEGIRO/XTB, variação do dia e
   ganho face ao último registo; mapeamento ISIN/ticker → símbolo Yahoo automático e editável em

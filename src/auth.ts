@@ -4,6 +4,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authConfig, DEV_LOGIN } from "./auth.config";
 import { logActivity } from "@/lib/activity";
+import { markAliveFromApp } from "@/lib/proof-of-life";
 
 declare module "next-auth" {
   interface Session {
@@ -34,8 +35,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       if (!user.email) return;
-      const u = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() }, select: { id: true, name: true } });
+      const u = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() }, select: { id: true, name: true, role: true } });
       await logActivity({ id: u?.id, email: user.email.toLowerCase(), name: u?.name ?? user.name }, "login", { details: { provider: account?.provider } });
+      if (u?.role === "ADMIN") await markAliveFromApp(u.name ?? user.email.toLowerCase());
     },
     async signOut(message) {
       const token = "token" in message ? message.token : null;

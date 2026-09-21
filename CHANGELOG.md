@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.8.0 — 2026-09-21
+- Prova de vida: de X em X dias é enviado um e-mail com um link de confirmação às pessoas indicadas; basta uma confirmar para o ciclo recomeçar.
+- Se ninguém confirmar em Y dias, os acessos à aplicação são atribuídos automaticamente às pessoas definidas, que recebem o link e o relatório do património em PDF; os titulares são avisados por e-mail.
+- Lembretes automáticos a 3 dias e a 1 dia do prazo, entrada de administrador como prova de vida (opcional), estado e histórico em Administração → Definições, com simulação e execução manual.
+
 ## 1.7.1 — 2026-09-19
 - Visão geral: os cartões "Património total" e "Investimentos" mostram, em segundo plano, o valor às cotações do momento e a diferença face aos valores registados.
 

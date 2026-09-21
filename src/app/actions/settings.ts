@@ -22,6 +22,14 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         alertBudget: z.boolean(),
         backupWeeklyEmail: z.boolean(),
         dailySnapshot: z.boolean(),
+        polEnabled: z.boolean(),
+        polIntervalDays: z.coerce.number().min(1).max(3650),
+        polGraceDays: z.coerce.number().min(1).max(365),
+        polEmails: z.string().trim(),
+        polBeneficiaries: z.string().trim(),
+        polBeneficiaryRole: z.enum(["VIEWER", "EDITOR", "ADMIN"]),
+        polMessage: z.string().trim().max(2000),
+        polLoginCounts: z.boolean(),
       })
       .parse({
         activityRetentionDays: fd.get("activityRetentionDays") || 0,
@@ -31,6 +39,14 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         alertBudget: fd.get("alertBudget") === "on",
         backupWeeklyEmail: fd.get("backupWeeklyEmail") === "on",
         dailySnapshot: fd.get("dailySnapshot") === "on",
+        polEnabled: fd.get("polEnabled") === "on",
+        polIntervalDays: fd.get("polIntervalDays") || 90,
+        polGraceDays: fd.get("polGraceDays") || 21,
+        polEmails: fd.get("polEmails") ?? "",
+        polBeneficiaries: fd.get("polBeneficiaries") ?? "",
+        polBeneficiaryRole: fd.get("polBeneficiaryRole") ?? "VIEWER",
+        polMessage: fd.get("polMessage") ?? "",
+        polLoginCounts: fd.get("polLoginCounts") === "on",
       });
     await saveSettings(data);
     await logActivity(me, "settings.update", { details: data });

@@ -1,16 +1,15 @@
 import { prisma } from "./prisma";
 import { getSettings, alertRecipients } from "./settings";
-import { emailConfigured, emailLayout, sendEmail } from "./email";
+import { appUrl, emailConfigured, emailLayout, sendEmail } from "./email";
 import { buildBackupJson } from "./export";
 import { getCurrentValues } from "./analytics";
 import { getLiveValuations } from "./quotes";
 import { getBudgetOverview } from "./budget";
 import { syncPortfolioSnapshot } from "./stock-portfolio";
+import { runProofOfLife } from "./proof-of-life";
 import { fmtDate, fmtEur, fmtPct } from "./format";
 
 export type JobReport = { ranAt: string; steps: { name: string; result: string }[] };
-
-const appUrl = () => process.env.APP_URL ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "");
 
 async function alreadySent(key: string, withinDays: number) {
   const row = await prisma.alertSent.findUnique({ where: { key } });
@@ -129,7 +128,14 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
     steps.push({ name: "Alertas", result: r.ok ? `${pending.length} alerta(s) enviados para ${to.join(", ")}` : `erro no envio: ${r.error}` });
   }
 
-  // 4. weekly backup (Mondays)
+  // 4. proof of life (dead man's switch)
+  try {
+    steps.push(...(await runProofOfLife({ dryRun: opts.dryRun })));
+  } catch (e) {
+    steps.push({ name: "Prova de vida", result: `erro: ${e instanceof Error ? e.message : e}` });
+  }
+
+  // 5. weekly backup (Mondays)
   if (s.backupWeeklyEmail && (opts.force || new Date().getUTCDay() === 1)) {
     if (!to.length) steps.push({ name: "Backup semanal", result: "ativo mas sem destinatários configurados" });
     else if (!emailConfigured()) steps.push({ name: "Backup semanal", result: "ativo mas e-mail não configurado (RESEND_API_KEY / ALERTS_FROM)" });

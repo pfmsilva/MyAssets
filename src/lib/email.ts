@@ -1,6 +1,11 @@
 /** Sends e-mail through Resend (https://resend.com). Needs RESEND_API_KEY and ALERTS_FROM. */
 export type Attachment = { filename: string; content: Buffer };
 
+/** Public URL of the app, used in the links inside e-mails. */
+export function appUrl() {
+  return process.env.APP_URL ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "");
+}
+
 export function emailConfigured() {
   return !!process.env.RESEND_API_KEY && !!process.env.ALERTS_FROM;
 }
