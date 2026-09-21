@@ -38,8 +38,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   As transações da DEGIRO (uma linha por ordem executada, com ISIN, quantidade e valor em EUR) entram numa
   carteira de ações: a app cria cada ação pelo ISIN e regista as compras e vendas, com preço médio, mais-valias e
   valor ao momento pelo Yahoo. Ficheiros repetidos não duplicam nada (cada operação tem um identificador próprio).
-  Os ativos da Binance (código, quantidade, valor em EUR e valor de compra estimado) entram como posições
-  datadas, com preço médio e ganho/perda, e ficam cotados em direto pelo Yahoo. A cotação de cripto é
+  Os ativos da Binance (código, quantidade, valor de compra estimado e, em alternativa ao valor atual,
+  os símbolos do Yahoo de cada moeda) entram como posições datadas, com preço médio e ganho/perda; sem
+  valor no ficheiro, cada moeda é avaliada à cotação do momento. Ficam cotados em direto pelo Yahoo. A cotação de cripto é
   procurada só entre criptomoedas (par em euros e, na falta dele, o par em dólares convertido ao câmbio),
   pelo que nunca é confundida com uma ação com o mesmo ticker.
 - **Registo manual** de valores (e posições) para os restantes ativos.

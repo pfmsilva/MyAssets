@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.14.0 — 2026-09-21
+- O importador da Binance aceita agora ficheiros com os símbolos do Yahoo por moeda (par em euros e par em dólares) e sem coluna de valor: o valor de cada posição é calculado na importação com a cotação do momento, usando o par em dólares ao câmbio quando não há par em euros.
+- Os símbolos indicados no ficheiro são respeitados (ex.: SUI20947-EUR, S3-USD), o que resolve as moedas que o Yahoo renomeia; sem cotação, fica o valor de compra e um aviso.
+- O formato anterior (com valor atual em EUR) continua a ser aceite.
+
 ## 1.13.1 — 2026-09-21
 - As posições de criptomoedas passam a ser cotadas só contra criptomoedas no Yahoo: nunca são confundidas com ações do mesmo ticker (SAND, LINK, S, …).
 - Procura o par em euros (BTC-EUR) e, se não existir, o par em dólares convertido ao câmbio; moedas que o Yahoo renomeia são encontradas por pesquisa limitada a criptomoedas, e quando não há cotação a mensagem explica como indicar o símbolo à mão.
