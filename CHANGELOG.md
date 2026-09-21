@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.11.0 — 2026-09-21
+- Pesquisa global em toda a aplicação: páginas, membros, ativos, ações das carteiras, categorias, instrumentos/cotações e descrições e notas dos movimentos.
+- Caixa de pesquisa na barra lateral e no topo em mobile, com atalho `Ctrl/⌘+K`, navegação pelas setas, resultados enquanto se escreve e página `/pesquisa` com todos os resultados agrupados.
+- Os resultados respeitam o âmbito do utilizador (membros e ativos visíveis) e as páginas de administração só aparecem a administradores.
+
 ## 1.10.0 — 2026-09-21
 - Análise de IA (Claude) do património: resumo, observações, riscos, sugestões de reequilíbrio face à alocação-alvo e perguntas a responder antes de decidir, em página própria com histórico das análises e custo estimado de cada uma.
 - Todos os números são calculados pela aplicação e apenas interpretados pelo modelo; nunca são enviados movimentos, números de conta nem dados de acesso, e os nomes dos membros podem ir anonimizados.

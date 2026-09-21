@@ -10,6 +10,10 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.
+- **Pesquisa global**: caixa na barra lateral e no topo em mobile (atalho `Ctrl/⌘+K`) que procura em toda a
+  aplicação — páginas, membros, ativos, ações das carteiras, categorias, instrumentos e descrições dos
+  movimentos — com resultados imediatos e página completa em `/pesquisa`. Respeita o âmbito de cada
+  utilizador (só vê o que lhe é permitido) e as páginas de administração só aparecem a administradores.
 - **Análise de IA** (administrador): envia ao Claude o retrato do património já calculado pela aplicação
   (totais por tipo e por membro, evolução, alocação face ao alvo, maiores posições, rentabilidade,
   liquidez, despesa e poupança) e devolve observações, riscos, sugestões de reequilíbrio e perguntas a

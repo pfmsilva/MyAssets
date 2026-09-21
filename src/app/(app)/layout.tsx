@@ -5,6 +5,7 @@ import { BottomNav, SideNav, NavItem } from "@/components/nav";
 import { hasRole, ROLE_LABEL } from "@/lib/access";
 import { versionLabel, versionTitle } from "@/lib/version";
 import { getSettings } from "@/lib/settings";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -35,6 +36,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <img src="/icon.svg" alt="" className="h-8 w-8" />
           <span className="text-lg font-semibold">Pecúlio</span>
         </Link>
+        <div className="mb-3">
+          <GlobalSearch placeholder="Pesquisar (Ctrl+K)" />
+        </div>
         <SideNav items={items} />
         <div className="mt-auto border-t border-border pt-3">
           <p className="truncate px-2 text-sm font-medium">{user.name ?? user.email}</p>
@@ -51,6 +55,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <img src="/icon.svg" alt="" className="h-7 w-7" />
             <span className="font-semibold">Pecúlio</span>
           </Link>
+          <div className="mx-2 min-w-0 flex-1">
+            <GlobalSearch placeholder="Pesquisar" />
+          </div>
           <details className="relative">
             <summary className="btn btn-sm cursor-pointer list-none">{(user.name ?? user.email).split(" ")[0]}</summary>
             <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border bg-surface p-2 shadow-lg">
