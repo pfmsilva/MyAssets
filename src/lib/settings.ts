@@ -18,6 +18,8 @@ export type Settings = {
   polMessage: string; // note included in the release e-mail
   polLoginCounts: boolean; // signing in as administrator also counts as proof of life
   allocationBandPp: number; // tolerance around each target, in percentage points
+  aiEnabled: boolean; // allow sending a portfolio summary to the Claude API
+  aiAnonymize: boolean; // replace family member names before sending
 };
 
 export const DEFAULTS: Settings = {
@@ -37,6 +39,8 @@ export const DEFAULTS: Settings = {
   polMessage: "",
   polLoginCounts: true,
   allocationBandPp: 5,
+  aiEnabled: false,
+  aiAnonymize: true,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -61,6 +65,8 @@ export async function getSettings(): Promise<Settings> {
     polMessage: map.get("polMessage") ?? DEFAULTS.polMessage,
     polLoginCounts: bool("polLoginCounts"),
     allocationBandPp: Number.isFinite(num("allocationBandPp")) && num("allocationBandPp") >= 0 ? num("allocationBandPp") : DEFAULTS.allocationBandPp,
+    aiEnabled: bool("aiEnabled"),
+    aiAnonymize: bool("aiAnonymize"),
   };
 }
 

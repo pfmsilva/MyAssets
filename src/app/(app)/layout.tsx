@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import { BottomNav, SideNav, NavItem } from "@/components/nav";
 import { hasRole, ROLE_LABEL } from "@/lib/access";
 import { versionLabel, versionTitle } from "@/lib/version";
+import { getSettings } from "@/lib/settings";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   const user = session.user;
+  const settings = await getSettings();
   const items: NavItem[] = [
     { href: "/", label: "Visão geral", icon: "home", short: "Início" },
     { href: "/membros", label: "Família", icon: "users" },
@@ -20,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/alocacao", label: "Alocação", icon: "pie" },
     { href: "/movimentos", label: "Movimentos", icon: "list" },
   ];
+  if (settings.aiEnabled) items.splice(8, 0, { href: "/analise", label: "Análise de IA", icon: "spark", short: "IA" });
   if (hasRole(user.role, "EDITOR")) items.push({ href: "/importar", label: "Importar", icon: "upload" });
   if (hasRole(user.role, "ADMIN")) items.push({ href: "/admin", label: "Administração", icon: "settings", short: "Admin" });
   const mobileItems = items.filter((i) => ["/", "/ativos", "/historico", "/despesas", "/movimentos"].includes(i.href));

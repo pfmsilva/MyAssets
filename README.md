@@ -10,6 +10,11 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.
+- **Análise de IA** (administrador): envia ao Claude o retrato do património já calculado pela aplicação
+  (totais por tipo e por membro, evolução, alocação face ao alvo, maiores posições, rentabilidade,
+  liquidez, despesa e poupança) e devolve observações, riscos, sugestões de reequilíbrio e perguntas a
+  responder. Os números nunca são calculados pelo modelo; os nomes dos membros podem ir anonimizados.
+  Requer `ANTHROPIC_API_KEY` e a ativação em Administração → Definições. Não é aconselhamento financeiro.
 - **Alocação-alvo**: peso pretendido por classe de ativo, desvio face ao atual e reequilíbrio (a vender/comprar ou só com reforços).
 - **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
 - **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
@@ -61,6 +66,7 @@ Auth.js v5 (Google) · Recharts · SheetJS.
    | `CRON_SECRET` | texto aleatório; autoriza a tarefa diária do Vercel Cron (`/api/cron/daily`) |
    | `RESEND_API_KEY` / `ALERTS_FROM` | opcional, para alertas e backups por e-mail via https://resend.com (ex.: `Pecúlio <alertas@o-teu-dominio.pt>`; sem domínio próprio usar `onboarding@resend.dev`, que só entrega ao e-mail da conta Resend) |
    | `APP_URL` | opcional, URL público usado nos e-mails |
+   | `ANTHROPIC_API_KEY` | opcional, para a análise de IA (https://console.anthropic.com); cada análise custa poucos cêntimos |
 
    O comando de build (`prisma generate && prisma migrate deploy && next build`) cria as tabelas.
 4. **Dados iniciais** (membros, ativos, categorias e regras), uma vez, a partir do teu PC:

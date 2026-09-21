@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { logView } from "@/lib/activity";
 import { getSettings } from "@/lib/settings";
 import { emailConfigured } from "@/lib/email";
+import { aiConfigured, AI_MODEL } from "@/lib/ai-analysis";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
@@ -92,6 +93,14 @@ export default async function SettingsAdmin() {
               <textarea id="polMessage" name="polMessage" rows={3} defaultValue={s.polMessage} placeholder="ex.: instruções para a família, contactos do contabilista…" className="w-full" />
             </div>
             <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="polLoginCounts" defaultChecked={s.polLoginCounts} /> Entrar na aplicação como administrador conta como prova de vida</label>
+
+            <div className="border-t border-border pt-4 sm:col-span-2">
+              <h3 className="text-sm font-semibold">Análise de IA</h3>
+              <p className="mt-1 text-sm text-ink-2">Envia ao Claude um resumo do património já calculado pela aplicação (totais por tipo e por membro, evolução, alocação face ao alvo, maiores posições, rentabilidade, liquidez, despesa e poupança) e recebe uma leitura com observações, riscos e sugestões de reequilíbrio. Não são enviados movimentos, números de conta nem dados de acesso, e nada é enviado sem carregar em «Analisar agora».</p>
+              <p className={`mt-1 text-xs ${aiConfigured() ? "text-good" : "text-warn"}`}>{aiConfigured() ? `Chave configurada. Modelo ${AI_MODEL}.` : "Chave em falta: defina ANTHROPIC_API_KEY no Vercel."}</p>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-normal text-ink"><input type="checkbox" name="aiEnabled" defaultChecked={s.aiEnabled} /> Ativar a análise de IA</label>
+            <label className="flex items-center gap-2 text-sm font-normal text-ink"><input type="checkbox" name="aiAnonymize" defaultChecked={s.aiAnonymize} /> Substituir os nomes dos membros por «Membro 1, 2, …»</label>
           </div>
         </ActionForm>
       </Card>

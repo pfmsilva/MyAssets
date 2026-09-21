@@ -30,6 +30,8 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         polBeneficiaryRole: z.enum(["VIEWER", "EDITOR", "ADMIN"]),
         polMessage: z.string().trim().max(2000),
         polLoginCounts: z.boolean(),
+        aiEnabled: z.boolean(),
+        aiAnonymize: z.boolean(),
       })
       .parse({
         activityRetentionDays: fd.get("activityRetentionDays") || 0,
@@ -47,6 +49,8 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         polBeneficiaryRole: fd.get("polBeneficiaryRole") ?? "VIEWER",
         polMessage: fd.get("polMessage") ?? "",
         polLoginCounts: fd.get("polLoginCounts") === "on",
+        aiEnabled: fd.get("aiEnabled") === "on",
+        aiAnonymize: fd.get("aiAnonymize") === "on",
       });
     await saveSettings(data);
     await logActivity(me, "settings.update", { details: data });

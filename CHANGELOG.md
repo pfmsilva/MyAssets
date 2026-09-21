@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.10.0 — 2026-09-21
+- Análise de IA (Claude) do património: resumo, observações, riscos, sugestões de reequilíbrio face à alocação-alvo e perguntas a responder antes de decidir, em página própria com histórico das análises e custo estimado de cada uma.
+- Todos os números são calculados pela aplicação e apenas interpretados pelo modelo; nunca são enviados movimentos, números de conta nem dados de acesso, e os nomes dos membros podem ir anonimizados.
+- Ativação, anonimização e estado da chave em Administração → Definições; executar uma análise exige perfil de administração e fica no registo de atividade.
+
 ## 1.9.0 — 2026-09-21
 - Alocação-alvo: repartição do património por classe de ativo (ações, obrigações, ouro, cripto, liquidez, imobiliário, fundos mistos), com peso-alvo por classe, tolerância configurável, desvio em pontos percentuais e o montante a comprar ou vender para voltar ao alvo.
 - Sugestão de reequilíbrio só com dinheiro novo, sem vender nada, e o reforço total necessário.

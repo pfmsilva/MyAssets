@@ -391,3 +391,20 @@ model AllocationTarget {
   note       String?
   updatedAt  DateTime   @updatedAt
 }
+
+/// A stored AI reading of the portfolio (input summary + structured result).
+model AiAnalysis {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  createdBy   String
+  model       String
+  scope       String   @default("GLOBAL") // GLOBAL or an asset id
+  scopeLabel  String?
+  input       Json
+  result      Json
+  inputTokens Int      @default(0)
+  outputTokens Int     @default(0)
+  costUsd     Float    @default(0)
+
+  @@index([createdAt])
+}
