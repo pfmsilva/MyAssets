@@ -37,11 +37,24 @@ export type ParsedRealizedTrade = {
   commission?: number;
 };
 
+export type ParsedTrade = {
+  date: string; // YYYY-MM-DD
+  seq: number; // chronological order within the file
+  isin: string;
+  name: string;
+  quantity: number; // positive on purchases, negative on sales
+  amountEur: number; // always positive: paid on a purchase, received on a sale
+  feeEur: number;
+  externalId: string; // stable id from the file, used for de-duplication
+  note?: string;
+};
+
 export type ParsedImport = {
-  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb" | "optimize";
+  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb" | "optimize" | "revolut-invest";
   transactions: ParsedTransaction[];
   positions: ParsedPosition[];
   realized?: ParsedRealizedTrade[];
+  trades?: ParsedTrade[]; // purchases and sales for a manual stock portfolio
   previousSnapshots?: { date: string; value: number }[]; // earlier valuations stated in the file (e.g. previous month total)
   balance?: number; // total value of the account at balanceDate
   balanceDate?: string;

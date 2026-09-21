@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.12.0 — 2026-09-21
+- Importação das transações de investimento da Revolut (CSV com uma linha por ordem executada): cada linha passa a ser uma compra ou venda numa carteira de ações, com a ação criada automaticamente a partir do ISIN.
+- Quantidade, preço médio, custo de aquisição, mais-valias realizadas e valor ao momento (cotações Yahoo) calculados a partir das operações importadas; o valor da carteira é registado logo após a importação.
+- Operações repetidas são ignoradas (identificador da ordem), pelo que o mesmo ficheiro pode ser importado vezes sem conta; anular a importação apaga as operações que criou.
+
 ## 1.11.0 — 2026-09-21
 - Pesquisa global em toda a aplicação: páginas, membros, ativos, ações das carteiras, categorias, instrumentos/cotações e descrições e notas dos movimentos.
 - Caixa de pesquisa na barra lateral e no topo em mobile, com atalho `Ctrl/⌘+K`, navegação pelas setas, resultados enquanto se escreve e página `/pesquisa` com todos os resultados agrupados.

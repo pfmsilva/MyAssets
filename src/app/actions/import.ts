@@ -25,7 +25,7 @@ export async function importFile(_prev: ImportState, fd: FormData): Promise<Impo
     if (!(file instanceof File) || file.size === 0) return { error: "Escolha um ficheiro." };
     if (file.size > 15 * 1024 * 1024) return { error: "Ficheiro demasiado grande (máx. 15 MB)." };
     const result = await runImport({ assetId, importer, fileName: file.name, buffer: await file.arrayBuffer(), snapshotDate, currentBalance, userId: user.id });
-    await logActivity(user, "import.run", { entity: "asset", entityId: assetId, details: { file: file.name, importer, rowsNew: result.rowsNew, rowsExisting: result.rowsExisting, positions: result.positions, balance: result.balance ?? null, batchId: result.batchId } });
+    await logActivity(user, "import.run", { entity: "asset", entityId: assetId, details: { file: file.name, importer, rowsNew: result.rowsNew, rowsExisting: result.rowsExisting, positions: result.positions, tradesNew: result.tradesNew, holdingsNew: result.holdingsNew, balance: result.balance ?? null, batchId: result.batchId } });
     revalidatePath("/", "layout");
     return { result };
   } catch (e) {

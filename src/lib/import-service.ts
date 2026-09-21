@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { loadRules, matchCategory } from "./categorize";
 import { ImporterKey, parseFile } from "./importers";
 import { ParsedImport, ParsedTransaction } from "./importers/types";
+import { syncPortfolioSnapshot } from "./stock-portfolio";
 
 export type ImportResult = {
   batchId: string;
@@ -12,6 +13,9 @@ export type ImportResult = {
   rowsExisting: number;
   positions: number;
   realizedNew: number;
+  tradesTotal: number;
+  tradesNew: number;
+  holdingsNew: number;
   balance?: number;
   balanceDate?: string;
   derivedSnapshots: number;
@@ -69,8 +73,12 @@ export async function runImport(opts: {
     warnings.splice(0, warnings.length, ...warnings.filter((w) => !/indique o saldo atual/i.test(w)));
   }
 
+  if (parsed.trades?.length && asset.type !== "STOCK_PORTFOLIO") {
+    throw new Error(`"${asset.name}" não é uma carteira de ações. Crie (ou escolha) um ativo do tipo "Carteira de ações (manual)" para importar compras e vendas.`);
+  }
+
   const batch = await prisma.importBatch.create({
-    data: { assetId: asset.id, source: parsed.source, fileName: opts.fileName, userId: opts.userId, rowsTotal: parsed.transactions.length },
+    data: { assetId: asset.id, source: parsed.source, fileName: opts.fileName, userId: opts.userId, rowsTotal: parsed.transactions.length || parsed.trades?.length || 0 },
   });
 
   // ---- transactions ----
@@ -144,6 +152,36 @@ export async function runImport(opts: {
     realizedNew = r.count;
   }
 
+  // ---- purchases and sales of a manual stock portfolio ----
+  let tradesNew = 0;
+  let holdingsNew = 0;
+  if (parsed.trades?.length) {
+    const byIsin = new Map<string, typeof parsed.trades>();
+    for (const t of parsed.trades) {
+      const list = byIsin.get(t.isin) ?? [];
+      list.push(t);
+      byIsin.set(t.isin, list);
+    }
+    let sortOrder = await prisma.holding.count({ where: { assetId: asset.id } });
+    for (const [isin, list] of byIsin) {
+      const existing = await prisma.holding.findUnique({ where: { assetId_isin: { assetId: asset.id, isin } } });
+      const holding =
+        existing ??
+        (await prisma.holding.create({ data: { assetId: asset.id, isin, name: list[0].name, sortOrder: sortOrder++ } }));
+      if (!existing) holdingsNew++;
+      const created = await prisma.trade.createMany({
+        data: list.map((t) => ({ holdingId: holding.id, date: new Date(t.date), quantity: t.quantity, amount: t.amountEur, fee: t.feeEur, note: t.note ?? null, externalId: t.externalId, importBatchId: batch.id })),
+        skipDuplicates: true,
+      });
+      tradesNew += created.count;
+    }
+    try {
+      await syncPortfolioSnapshot(asset.id, { force: true });
+    } catch (e) {
+      warnings.push(`Compras e vendas importadas, mas não foi possível atualizar o valor com as cotações: ${e instanceof Error ? e.message.slice(0, 120) : "erro"}. Use "Atualizar cotações" na página do ativo.`);
+    }
+  }
+
   // ---- derived month-end snapshots from running balances (history for free) ----
   if (parsed.transactions.length) {
     const withBal = parsed.transactions
@@ -166,7 +204,7 @@ export async function runImport(opts: {
     }
   }
 
-  await prisma.importBatch.update({ where: { id: batch.id }, data: { rowsNew } });
+  await prisma.importBatch.update({ where: { id: batch.id }, data: { rowsNew: rowsNew || tradesNew } });
   return {
     batchId: batch.id,
     source: parsed.source,
@@ -175,6 +213,9 @@ export async function runImport(opts: {
     rowsExisting: parsed.transactions.length - rowsNew,
     positions: parsed.positions.length,
     realizedNew,
+    tradesTotal: parsed.trades?.length ?? 0,
+    tradesNew,
+    holdingsNew,
     balance: parsed.balance,
     balanceDate: parsed.balance !== undefined ? balanceDate : undefined,
     derivedSnapshots,

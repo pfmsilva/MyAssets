@@ -2,6 +2,7 @@ import { parseBpi } from "./bpi";
 import { parseCtt } from "./ctt";
 import { parseDegiro } from "./degiro";
 import { parseRevolut } from "./revolut";
+import { parseRevolutInvest } from "./revolut-invest";
 import { parseXtb } from "./xtb";
 import { parseOptimize } from "./optimize";
 import { ParsedImport } from "./types";
@@ -9,6 +10,7 @@ import { ParsedImport } from "./types";
 export const IMPORTERS = {
   bpi: { label: "BPI (extrato .xlsx)", accept: ".xlsx,.xls", needsBalance: false, parse: (buf: ArrayBuffer) => parseBpi(buf) },
   revolut: { label: "Revolut (extrato .csv)", accept: ".csv", needsBalance: false, parse: (buf: ArrayBuffer) => parseRevolut(new TextDecoder("utf-8").decode(buf)) },
+  "revolut-invest": { label: "Revolut Investimentos (transações .csv)", accept: ".csv", needsBalance: false, parse: (buf: ArrayBuffer) => parseRevolutInvest(new TextDecoder("utf-8").decode(buf)) },
   degiro: { label: "DEGIRO (carteira .xls/.xlsx)", accept: ".xls,.xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseDegiro(buf) },
   ctt: { label: "Banco CTT (movimentos .xlsx)", accept: ".xlsx,.xls", needsBalance: true, parse: (buf: ArrayBuffer) => parseCtt(buf) },
   xtb: { label: "XTB (relatório de conta .xlsx)", accept: ".xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseXtb(buf) },

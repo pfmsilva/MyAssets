@@ -62,6 +62,9 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
             {r.rowsTotal > 0 && <li>{r.categorized} categorizados automaticamente pelas regras.</li>}
             {r.positions > 0 && <li>{r.positions} posições registadas.</li>}
             {r.realizedNew > 0 && <li>{r.realizedNew} posições fechadas (mais-valias realizadas) novas.</li>}
+            {r.tradesTotal > 0 && <li>{r.tradesNew} compras/vendas novas, {r.tradesTotal - r.tradesNew} já existentes (ignoradas).</li>}
+            {r.holdingsNew > 0 && <li>{r.holdingsNew} ações criadas na carteira (confirme os símbolos Yahoo na página do ativo).</li>}
+            {r.tradesNew > 0 && <li>Na página do ativo, use <b>Reconstruir histórico</b> para preencher a evolução mensal desde a primeira compra.</li>}
             {r.balance !== undefined && <li>Valor registado: {fmtEur(r.balance)} em {fmtDate(r.balanceDate!)}.</li>}
             {r.derivedSnapshots > 0 && <li>{r.derivedSnapshots} saldos de fim de mês derivados do histórico.</li>}
             {r.warnings.map((w) => <li key={w} className="text-warn">{w}</li>)}

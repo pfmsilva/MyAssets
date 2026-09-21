@@ -260,6 +260,7 @@ model ImportBatch {
   snapshots    Snapshot[]
   transactions Transaction[]
   realizedTrades RealizedTrade[]
+  trades       Trade[]
   createdAt    DateTime      @default(now())
 }
 
@@ -353,16 +354,20 @@ model Holding {
 
 /// A manually entered purchase (quantity > 0) or sale (quantity < 0) of a holding.
 model Trade {
-  id        String   @id @default(cuid())
-  holdingId String
-  date      DateTime @db.Date
-  quantity  Float
-  amount    Float    // total paid (purchase) or received (sale), in EUR, always positive
-  fee       Float    @default(0)
-  note      String?
-  holding   Holding  @relation(fields: [holdingId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id            String       @id @default(cuid())
+  holdingId     String
+  date          DateTime     @db.Date
+  quantity      Float
+  amount        Float        // total paid (purchase) or received (sale), in EUR, always positive
+  fee           Float        @default(0)
+  note          String?
+  externalId    String?      // stable id from an imported file, used for de-duplication
+  importBatchId String?
+  holding       Holding      @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
 
+  @@unique([holdingId, externalId])
   @@index([holdingId, date])
 }
 
