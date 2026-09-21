@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 1.12.2 — 2026-09-21
+- Importar transações para um ativo que ainda não é carteira de ações passa a oferecer a conversão no próprio formulário (opção marcada por omissão), mantendo o histórico de valores; a mensagem de erro passa a dizer qual é o tipo atual e o que fazer.
+
 ## 1.12.1 — 2026-09-21
 - Correção: o importador de transações é o da **DEGIRO** (Atividade → Transações → CSV), não da Revolut; formato e cálculos são os mesmos.
 

@@ -18,13 +18,14 @@ export async function importFile(_prev: ImportState, fd: FormData): Promise<Impo
     const snapshotDate = String(fd.get("snapshotDate") ?? "") || undefined;
     const balanceRaw = String(fd.get("currentBalance") ?? "").trim().replace(/\s|€/g, "").replace(",", ".");
     const currentBalance = balanceRaw ? Number(balanceRaw) : undefined;
+    const convertToPortfolio = fd.get("convertToPortfolio") === "on";
     if (balanceRaw && !Number.isFinite(currentBalance)) return { error: "Saldo atual inválido." };
     if (!assetId) return { error: "Escolha o ativo." };
     if (!canSeeAsset(await getScope(user), assetId)) return { error: "Sem permissão para este ativo." };
     if (!(importer in IMPORTERS)) return { error: "Escolha o tipo de ficheiro." };
     if (!(file instanceof File) || file.size === 0) return { error: "Escolha um ficheiro." };
     if (file.size > 15 * 1024 * 1024) return { error: "Ficheiro demasiado grande (máx. 15 MB)." };
-    const result = await runImport({ assetId, importer, fileName: file.name, buffer: await file.arrayBuffer(), snapshotDate, currentBalance, userId: user.id });
+    const result = await runImport({ assetId, importer, fileName: file.name, buffer: await file.arrayBuffer(), snapshotDate, currentBalance, convertToPortfolio, userId: user.id });
     await logActivity(user, "import.run", { entity: "asset", entityId: assetId, details: { file: file.name, importer, rowsNew: result.rowsNew, rowsExisting: result.rowsExisting, positions: result.positions, tradesNew: result.tradesNew, holdingsNew: result.holdingsNew, balance: result.balance ?? null, batchId: result.batchId } });
     revalidatePath("/", "layout");
     return { result };

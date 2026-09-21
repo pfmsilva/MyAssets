@@ -19,6 +19,10 @@ export const IMPORTERS = {
 
 export type ImporterKey = keyof typeof IMPORTERS;
 
+/** Importers whose rows are purchases and sales: they need an asset of type "Carteira de ações (manual)". */
+export const PORTFOLIO_IMPORTERS: ImporterKey[] = ["degiro-trades"];
+export const isPortfolioImporter = (key: string) => (PORTFOLIO_IMPORTERS as string[]).includes(key);
+
 export async function parseFile(importer: ImporterKey, buf: ArrayBuffer): Promise<ParsedImport> {
   const imp = IMPORTERS[importer];
   if (!imp) throw new Error(`Importador desconhecido: ${importer}`);

@@ -1,10 +1,10 @@
 "use client";
 import { useActionState, useState } from "react";
 import { importFile, ImportState } from "@/app/actions/import";
-import { fmtDate, fmtEur, todayIso } from "@/lib/format";
+import { ASSET_TYPE_LABEL, fmtDate, fmtEur, todayIso } from "@/lib/format";
 
-type AssetOpt = { id: string; name: string; importer: string | null };
-type ImporterOpt = { key: string; label: string; accept: string; needsBalance: boolean };
+type AssetOpt = { id: string; name: string; importer: string | null; type: string };
+type ImporterOpt = { key: string; label: string; accept: string; needsBalance: boolean; portfolio: boolean };
 
 export function ImportForm({ assets, importers, initialAsset }: { assets: AssetOpt[]; importers: ImporterOpt[]; initialAsset?: string }) {
   const [state, action, pending] = useActionState<ImportState, FormData>(importFile, {});
@@ -37,6 +37,12 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
             <label htmlFor="snapshotDate">Data da carteira (o ficheiro DEGIRO não tem data)</label>
             <input id="snapshotDate" name="snapshotDate" type="date" defaultValue={todayIso()} />
           </div>
+        )}
+        {imp?.portfolio && asset && asset.type !== "STOCK_PORTFOLIO" && (
+          <label className="flex items-start gap-2 text-sm font-normal text-ink sm:col-span-2">
+            <input type="checkbox" name="convertToPortfolio" defaultChecked className="mt-0.5" />
+            <span>Converter <b>{asset.name}</b> (atualmente &laquo;{ASSET_TYPE_LABEL[asset.type] ?? asset.type}&raquo;) em <b>carteira de ações (manual)</b>. O histórico de valores é mantido e, a partir daqui, o valor passa a ser calculado pelas compras/vendas com as cotações do Yahoo.</span>
+          </label>
         )}
         {imp?.needsBalance && (
           <>

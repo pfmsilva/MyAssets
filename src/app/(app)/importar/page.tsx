@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/access";
 import { logView } from "@/lib/activity";
 import { assetIdScopeWhere, assetScopeWhere, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
-import { IMPORTERS } from "@/lib/importers";
+import { IMPORTERS, isPortfolioImporter } from "@/lib/importers";
 import { fmtDate } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui";
 import { ImportForm } from "@/components/ImportForm";
@@ -21,12 +21,12 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
     prisma.asset.findMany({ where: { active: true, ...assetScopeWhere(scope) }, orderBy: [{ importer: "asc" }, { sortOrder: "asc" }] }),
     prisma.importBatch.findMany({ where: assetIdScopeWhere(scope), orderBy: { createdAt: "desc" }, take: 20, include: { asset: true, user: { select: { name: true, email: true } } } }),
   ]);
-  const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance }));
+  const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance, portfolio: isPortfolioImporter(key) }));
   return (
     <>
       <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx), carteira DEGIRO (.xls) e transações DEGIRO (.csv), relatório XTB (.xlsx) e extrato mensal Optimize (.pdf). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
       <div className="grid gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-3"><ImportForm assets={assets.map((a) => ({ id: a.id, name: a.name, importer: a.importer }))} importers={importers} initialAsset={asset} /></Card>
+        <Card className="lg:col-span-3"><ImportForm assets={assets.map((a) => ({ id: a.id, name: a.name, importer: a.importer, type: a.type }))} importers={importers} initialAsset={asset} /></Card>
         <Card title="Como obter os ficheiros" className="lg:col-span-2 text-sm text-ink-2">
           <ul className="list-inside list-disc space-y-1">
             <li><b>BPI Net</b>: Contas → Movimentos → exportar para Excel (.xlsx). Inclui o saldo e os movimentos apresentados.</li>

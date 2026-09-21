@@ -4,6 +4,7 @@ import { loadRules, matchCategory } from "./categorize";
 import { ImporterKey, parseFile } from "./importers";
 import { ParsedImport, ParsedTransaction } from "./importers/types";
 import { syncPortfolioSnapshot } from "./stock-portfolio";
+import { ASSET_TYPE_LABEL } from "./format";
 
 export type ImportResult = {
   batchId: string;
@@ -44,6 +45,7 @@ export async function runImport(opts: {
   buffer: ArrayBuffer;
   snapshotDate?: string; // override for the snapshot date (DEGIRO, or the date of `currentBalance`)
   currentBalance?: number; // for statements without running balance (CTT): balance after the newest row
+  convertToPortfolio?: boolean; // turn the asset into a stock portfolio when importing purchases and sales
   userId?: string;
 }): Promise<ImportResult> {
   const asset = await prisma.asset.findUniqueOrThrow({ where: { id: opts.assetId } });
@@ -73,8 +75,16 @@ export async function runImport(opts: {
     warnings.splice(0, warnings.length, ...warnings.filter((w) => !/indique o saldo atual/i.test(w)));
   }
 
-  if (parsed.trades?.length && asset.type !== "STOCK_PORTFOLIO") {
-    throw new Error(`"${asset.name}" não é uma carteira de ações. Crie (ou escolha) um ativo do tipo "Carteira de ações (manual)" para importar compras e vendas.`);
+  let assetType = asset.type;
+  if (parsed.trades?.length && assetType !== "STOCK_PORTFOLIO") {
+    if (!opts.convertToPortfolio) {
+      throw new Error(
+        `"${asset.name}" é do tipo "${ASSET_TYPE_LABEL[assetType] ?? assetType}". As compras e vendas precisam do tipo "Carteira de ações (manual)": marque a opção "converter o ativo" neste formulário, ou altere o tipo em Administração → Ativos. O histórico de valores é mantido.`,
+      );
+    }
+    await prisma.asset.update({ where: { id: asset.id }, data: { type: "STOCK_PORTFOLIO" } });
+    assetType = "STOCK_PORTFOLIO";
+    warnings.push(`"${asset.name}" passou a ser uma carteira de ações (manual); o valor passa a ser calculado a partir das compras e vendas com as cotações do Yahoo.`);
   }
 
   const batch = await prisma.importBatch.create({
