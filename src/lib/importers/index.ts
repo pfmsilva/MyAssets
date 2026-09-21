@@ -1,3 +1,4 @@
+import { parseBinance } from "./binance";
 import { parseBpi } from "./bpi";
 import { parseCtt } from "./ctt";
 import { parseDegiro } from "./degiro";
@@ -10,8 +11,9 @@ import { ParsedImport } from "./types";
 export const IMPORTERS = {
   bpi: { label: "BPI (extrato .xlsx)", accept: ".xlsx,.xls", needsBalance: false, parse: (buf: ArrayBuffer) => parseBpi(buf) },
   revolut: { label: "Revolut (extrato .csv)", accept: ".csv", needsBalance: false, parse: (buf: ArrayBuffer) => parseRevolut(new TextDecoder("utf-8").decode(buf)) },
-  degiro: { label: "DEGIRO (carteira .xls/.xlsx)", accept: ".xls,.xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseDegiro(buf) },
+  degiro: { label: "DEGIRO (carteira .xls/.xlsx)", accept: ".xls,.xlsx", needsBalance: false, needsDate: true, parse: (buf: ArrayBuffer) => parseDegiro(buf) },
   "degiro-trades": { label: "DEGIRO (transações .csv)", accept: ".csv", needsBalance: false, parse: (buf: ArrayBuffer) => parseDegiroTrades(new TextDecoder("utf-8").decode(buf)) },
+  binance: { label: "Binance (ativos .csv)", accept: ".csv", needsBalance: false, needsDate: true, parse: (buf: ArrayBuffer) => parseBinance(new TextDecoder("utf-8").decode(buf)) },
   ctt: { label: "Banco CTT (movimentos .xlsx)", accept: ".xlsx,.xls", needsBalance: true, parse: (buf: ArrayBuffer) => parseCtt(buf) },
   xtb: { label: "XTB (relatório de conta .xlsx)", accept: ".xlsx", needsBalance: false, parse: (buf: ArrayBuffer) => parseXtb(buf) },
   optimize: { label: "Optimize (extrato mensal .pdf)", accept: ".pdf", needsBalance: false, parse: (buf: ArrayBuffer) => parseOptimize(buf) },

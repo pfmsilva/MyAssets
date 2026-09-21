@@ -4,7 +4,7 @@ import { importFile, ImportState } from "@/app/actions/import";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, todayIso } from "@/lib/format";
 
 type AssetOpt = { id: string; name: string; importer: string | null; type: string };
-type ImporterOpt = { key: string; label: string; accept: string; needsBalance: boolean; portfolio: boolean };
+type ImporterOpt = { key: string; label: string; accept: string; needsBalance: boolean; needsDate: boolean; portfolio: boolean };
 
 export function ImportForm({ assets, importers, initialAsset }: { assets: AssetOpt[]; importers: ImporterOpt[]; initialAsset?: string }) {
   const [state, action, pending] = useActionState<ImportState, FormData>(importFile, {});
@@ -32,9 +32,9 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
           <label htmlFor="file">Ficheiro</label>
           <input id="file" name="file" type="file" accept={imp?.accept} required className="file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1 file:text-xs" />
         </div>
-        {importer === "degiro" && (
+        {imp?.needsDate && (
           <div className="flex flex-col gap-1">
-            <label htmlFor="snapshotDate">Data da carteira (o ficheiro DEGIRO não tem data)</label>
+            <label htmlFor="snapshotDate">Data do retrato (o ficheiro não traz data)</label>
             <input id="snapshotDate" name="snapshotDate" type="date" defaultValue={todayIso()} />
           </div>
         )}

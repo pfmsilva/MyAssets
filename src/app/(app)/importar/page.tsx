@@ -21,10 +21,10 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
     prisma.asset.findMany({ where: { active: true, ...assetScopeWhere(scope) }, orderBy: [{ importer: "asc" }, { sortOrder: "asc" }] }),
     prisma.importBatch.findMany({ where: assetIdScopeWhere(scope), orderBy: { createdAt: "desc" }, take: 20, include: { asset: true, user: { select: { name: true, email: true } } } }),
   ]);
-  const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance, portfolio: isPortfolioImporter(key) }));
+  const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance, needsDate: "needsDate" in v ? v.needsDate : false, portfolio: isPortfolioImporter(key) }));
   return (
     <>
-      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx), carteira DEGIRO (.xls) e transações DEGIRO (.csv), relatório XTB (.xlsx) e extrato mensal Optimize (.pdf). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
+      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx), carteira DEGIRO (.xls), transações DEGIRO (.csv), ativos Binance (.csv), relatório XTB (.xlsx) e extrato mensal Optimize (.pdf). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3"><ImportForm assets={assets.map((a) => ({ id: a.id, name: a.name, importer: a.importer, type: a.type }))} importers={importers} initialAsset={asset} /></Card>
         <Card title="Como obter os ficheiros" className="lg:col-span-2 text-sm text-ink-2">
@@ -32,6 +32,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
             <li><b>BPI Net</b>: Contas → Movimentos → exportar para Excel (.xlsx). Inclui o saldo e os movimentos apresentados.</li>
             <li><b>Revolut</b>: App → Conta → Extrato → CSV (Excel). Pode exportar todo o histórico; só os novos são adicionados.</li>
             <li><b>Banco CTT</b>: Conta à Ordem → Movimentos → Exportar (Excel). Não traz saldo: indique o saldo atual da app CTT.</li>
+            <li><b>Binance</b>: exportar os ativos em CSV (código, quantidade, valor atual em EUR e, se existir, valor de compra estimado). Regista cada moeda como posição na data indicada, com preço médio e ganho/perda; as cotações em direto vêm do Yahoo (BTC-EUR, ETH-EUR, …).</li>
             <li><b>DEGIRO (carteira)</b>: Carteira → Exportar → XLS. É um retrato do dia; indique a data.</li>
             <li><b>DEGIRO (transações)</b>: Atividade → Transações → Exportar CSV (Data, Produto, ISIN, Quantidade, Valor EUR, custos, ID da ordem). Cada linha vira uma compra ou venda numa <b>carteira de ações</b>: escolha um ativo do tipo &laquo;Carteira de ações (manual)&raquo; e a app cria as ações por ISIN e calcula quantidade, preço médio, mais-valias e o valor ao momento pelo Yahoo. Exporte desde o início da conta; operações repetidas são ignoradas.</li>
             <li><b>XTB</b>: xStation → Relatórios / Histórico de conta → exportar Excel com posições abertas e operações de caixa desde o início da conta. Regista a carteira à data do relatório (posições + dinheiro) e as operações como movimentos.</li>

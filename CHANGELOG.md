@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.13.0 — 2026-09-21
+- Novo importador Binance (CSV de ativos: código, quantidade, valor atual em EUR, ganho/perda e valor de compra estimado): regista cada moeda como posição na data indicada, com preço médio e custo de aquisição.
+- As posições de cripto ficam ligadas às cotações do Yahoo pelo par em euros (BTC-EUR, ETH-EUR, …), pelo que a carteira passa a ter valor em direto, variação do dia e ganho/perda.
+- O campo "data do retrato" passa a aparecer para todos os ficheiros sem data (DEGIRO e Binance).
+
 ## 1.12.2 — 2026-09-21
 - Importar transações para um ativo que ainda não é carteira de ações passa a oferecer a conversão no próprio formulário (opção marcada por omissão), mantendo o histórico de valores; a mensagem de erro passa a dizer qual é o tipo atual e o que fazer.
 
