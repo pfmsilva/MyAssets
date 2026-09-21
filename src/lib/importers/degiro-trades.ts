@@ -4,11 +4,11 @@ import { ParsedImport, ParsedTrade, parsePtDate, parsePtNumber } from "./types";
 const ISIN_RE = /^[A-Z]{2}[A-Z0-9]{9}\d$/;
 
 /**
- * Transaction history of a Revolut investment account (CSV with one row per executed order).
+ * DEGIRO transaction history (CSV export "Transações", one row per executed order).
  * Each row becomes a purchase (positive quantity) or a sale (negative quantity) of the ISIN,
  * feeding a manual stock portfolio.
  */
-export function parseRevolutInvest(text: string): ParsedImport {
+export function parseDegiroTrades(text: string): ParsedImport {
   const rows = parseCsv(text);
   if (!rows.length) throw new Error("Ficheiro vazio.");
   const header = rows[0].map((h) => h.trim().toLowerCase());
@@ -75,5 +75,5 @@ export function parseRevolutInvest(text: string): ParsedImport {
     período: `${dates[0]} a ${dates[dates.length - 1]}`,
     títulos: String(new Set(trades.map((t) => t.isin)).size),
   };
-  return { source: "revolut-invest", transactions: [], positions: [], trades, meta, warnings };
+  return { source: "degiro-trades", transactions: [], positions: [], trades, meta, warnings };
 }

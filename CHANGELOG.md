@@ -1,7 +1,10 @@
 # Histórico de versões
 
+## 1.12.1 — 2026-09-21
+- Correção: o importador de transações é o da **DEGIRO** (Atividade → Transações → CSV), não da Revolut; formato e cálculos são os mesmos.
+
 ## 1.12.0 — 2026-09-21
-- Importação das transações de investimento da Revolut (CSV com uma linha por ordem executada): cada linha passa a ser uma compra ou venda numa carteira de ações, com a ação criada automaticamente a partir do ISIN.
+- Importação das transações de investimento (CSV com uma linha por ordem executada): cada linha passa a ser uma compra ou venda numa carteira de ações, com a ação criada automaticamente a partir do ISIN.
 - Quantidade, preço médio, custo de aquisição, mais-valias realizadas e valor ao momento (cotações Yahoo) calculados a partir das operações importadas; o valor da carteira é registado logo após a importação.
 - Operações repetidas são ignoradas (identificador da ordem), pelo que o mesmo ficheiro pode ser importado vezes sem conta; anular a importação apaga as operações que criou.
 

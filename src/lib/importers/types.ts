@@ -50,7 +50,7 @@ export type ParsedTrade = {
 };
 
 export type ParsedImport = {
-  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb" | "optimize" | "revolut-invest";
+  source: "bpi" | "revolut" | "degiro" | "ctt" | "xtb" | "optimize" | "degiro-trades";
   transactions: ParsedTransaction[];
   positions: ParsedPosition[];
   realized?: ParsedRealizedTrade[];

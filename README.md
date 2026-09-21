@@ -32,9 +32,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Versão**: versão, commit e data de build visíveis na barra lateral, no login e em Administração → histórico (`CHANGELOG.md`).
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
-- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), transações Revolut Investimentos (.csv),
-  movimentos Banco CTT (.xlsx), carteira DEGIRO (.xls), relatório XTB (.xlsx), extrato mensal Optimize (.pdf).
-  As transações de investimento (uma linha por ordem executada, com ISIN, quantidade e valor em EUR) entram numa
+- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx),
+  carteira DEGIRO (.xls), transações DEGIRO (.csv), relatório XTB (.xlsx), extrato mensal Optimize (.pdf).
+  As transações da DEGIRO (uma linha por ordem executada, com ISIN, quantidade e valor em EUR) entram numa
   carteira de ações: a app cria cada ação pelo ISIN e regista as compras e vendas, com preço médio, mais-valias e
   valor ao momento pelo Yahoo. Ficheiros repetidos não duplicam nada (cada operação tem um identificador próprio).
 - **Registo manual** de valores (e posições) para os restantes ativos.
