@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.13.1 — 2026-09-21
+- As posições de criptomoedas passam a ser cotadas só contra criptomoedas no Yahoo: nunca são confundidas com ações do mesmo ticker (SAND, LINK, S, …).
+- Procura o par em euros (BTC-EUR) e, se não existir, o par em dólares convertido ao câmbio; moedas que o Yahoo renomeia são encontradas por pesquisa limitada a criptomoedas, e quando não há cotação a mensagem explica como indicar o símbolo à mão.
+- Os instrumentos criados a partir de pares de cripto ficam logo com a classe "Criptomoedas" para a alocação-alvo.
+
 ## 1.13.0 — 2026-09-21
 - Novo importador Binance (CSV de ativos: código, quantidade, valor atual em EUR, ganho/perda e valor de compra estimado): regista cada moeda como posição na data indicada, com preço médio e custo de aquisição.
 - As posições de cripto ficam ligadas às cotações do Yahoo pelo par em euros (BTC-EUR, ETH-EUR, …), pelo que a carteira passa a ter valor em direto, variação do dia e ganho/perda.

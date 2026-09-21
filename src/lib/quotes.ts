@@ -71,12 +71,15 @@ function mockClient(): QuoteClient {
     async quote(symbols) {
       return symbols.map((symbol) => {
         const isFx = symbol.endsWith("=X");
+        const crypto = /^[A-Z0-9]{1,15}-(EUR|USD)$/.test(symbol);
         const price = isFx ? (symbol.startsWith("USD") ? 0.92 : symbol.startsWith("GBP") ? 1.17 : 1) : priceFor(symbol);
         const prev = price / (1 + ((priceFor(symbol + "d") % 5) - 2.5) / 100);
-        return { symbol, shortName: `${symbol} (simulado)`, currency: isFx ? "EUR" : symbol.endsWith(".L") ? "GBp" : symbol.includes(".") ? "EUR" : "USD", regularMarketPrice: price, regularMarketPreviousClose: prev, regularMarketChange: price - prev, regularMarketChangePercent: ((price - prev) / prev) * 100, regularMarketTime: new Date(), exchange: "SIM", quoteType: "ETF" };
+        const currency = isFx ? "EUR" : crypto ? symbol.slice(-3) : symbol.endsWith(".L") ? "GBp" : symbol.includes(".") ? "EUR" : "USD";
+        return { symbol, shortName: `${symbol} (simulado)`, currency, regularMarketPrice: price, regularMarketPreviousClose: prev, regularMarketChange: price - prev, regularMarketChangePercent: ((price - prev) / prev) * 100, regularMarketTime: new Date(), exchange: crypto ? "CCC" : "SIM", quoteType: crypto ? "CRYPTOCURRENCY" : "ETF" };
       });
     },
     async search(query) {
+      if (/-(EUR|USD)$/i.test(query)) return [{ symbol: query.toUpperCase(), exchange: "CCC", exchDisp: "CCC", quoteType: "CRYPTOCURRENCY", shortname: `Simulado ${query}` }];
       return [{ symbol: `${query.slice(0, 4).toUpperCase()}.DE`, exchange: "GER", exchDisp: "XETRA", quoteType: "ETF", shortname: `Simulado ${query}` }];
     },
     async historical(symbol, from, to) {
@@ -121,6 +124,19 @@ function rankSearch(quotes: SearchResult[]) {
   });
 }
 
+/** "BTC-EUR", "SHIB-USD": a crypto pair written as Yahoo writes it. */
+const CRYPTO_KEY_RE = /^([A-Z0-9]{1,15})-(EUR|USD|USDT|USDC)$/;
+const isCryptoQuote = (q: QuoteResult) => q.quoteType === "CRYPTOCURRENCY" || /^[A-Z0-9]{1,15}-(EUR|USD)$/.test(q.symbol);
+
+/** Only accepts quotes that really are cryptocurrencies, so a coin never matches a stock with the same ticker. */
+async function pickCryptoCandidate(candidates: string[]): Promise<QuoteResult | undefined> {
+  const list = candidates.filter((c, i) => c && candidates.indexOf(c) === i).slice(0, 5);
+  if (!list.length) return undefined;
+  const quotes = await getClient().quote(list);
+  const valid = quotes.filter((q) => q.regularMarketPrice !== undefined && q.regularMarketPrice !== null && isCryptoQuote(q));
+  return valid.find((q) => q.currency === "EUR") ?? valid[0];
+}
+
 async function pickEurCandidate(candidates: string[]): Promise<QuoteResult | undefined> {
   if (!candidates.length) return undefined;
   const quotes = await getClient().quote(candidates.slice(0, 5));
@@ -132,6 +148,18 @@ async function pickEurCandidate(candidates: string[]): Promise<QuoteResult | und
 export async function resolveSymbol(key: string, name: string): Promise<{ symbol: string; quote: QuoteResult } | { error: string }> {
   const c = getClient();
   try {
+    const crypto = key.toUpperCase().match(CRYPTO_KEY_RE);
+    if (crypto) {
+      const code = crypto[1];
+      // the euro pair first, then the dollar pair (converted with the FX rate)
+      const direct = await pickCryptoCandidate([`${code}-EUR`, `${code}-USD`]);
+      if (direct) return { symbol: direct.symbol, quote: direct };
+      // Yahoo renames coins whose ticker collides (e.g. "S" -> "S32684-USD"): search, but only among cryptocurrencies
+      const found = (await c.search(`${code}-EUR`)).concat(await c.search(code)).filter((q) => q.quoteType === "CRYPTOCURRENCY");
+      const best = await pickCryptoCandidate(found.map((q) => q.symbol));
+      if (best) return { symbol: best.symbol, quote: best };
+      return { error: `Sem cotação de criptomoeda no Yahoo para ${code}. Indique o símbolo à mão (ex.: ${code}-EUR).` };
+    }
     if (ISIN_RE.test(key)) {
       const found = rankSearch(await c.search(key));
       let best = await pickEurCandidate(found.map((q) => q.symbol));
@@ -176,7 +204,12 @@ export async function ensureInstruments(positions: PositionLike[], opts: { resol
   if (!keys.size) return [];
   const existing = await prisma.instrument.findMany({ where: { key: { in: [...keys.keys()] } } });
   const byKey = new Map(existing.map((i) => [i.key, i]));
-  for (const [key, name] of keys) if (!byKey.has(key)) byKey.set(key, await prisma.instrument.create({ data: { key, name } }));
+  for (const [key, name] of keys)
+    if (!byKey.has(key)) {
+      // a crypto pair is a cryptocurrency for the allocation, whatever the coin is called
+      const assetClass = CRYPTO_KEY_RE.test(key.toUpperCase()) ? ("CRYPTO" as const) : undefined;
+      byKey.set(key, await prisma.instrument.create({ data: { key, name, assetClass } }));
+    }
   if (opts.resolve) {
     const retryAfter = Date.now() - 6 * 60 * 60 * 1000;
     for (const inst of byKey.values()) {

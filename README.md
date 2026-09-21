@@ -39,7 +39,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   carteira de ações: a app cria cada ação pelo ISIN e regista as compras e vendas, com preço médio, mais-valias e
   valor ao momento pelo Yahoo. Ficheiros repetidos não duplicam nada (cada operação tem um identificador próprio).
   Os ativos da Binance (código, quantidade, valor em EUR e valor de compra estimado) entram como posições
-  datadas, com preço médio e ganho/perda, e ficam cotados em direto pelo Yahoo (BTC-EUR, ETH-EUR, …).
+  datadas, com preço médio e ganho/perda, e ficam cotados em direto pelo Yahoo. A cotação de cripto é
+  procurada só entre criptomoedas (par em euros e, na falta dele, o par em dólares convertido ao câmbio),
+  pelo que nunca é confundida com uma ação com o mesmo ticker.
 - **Registo manual** de valores (e posições) para os restantes ativos.
 - **Carteira de ações (manual)**: tipo de ativo em que se indica cada ação por ISIN e descrição e se registam as compras/vendas; o valor, o preço médio e o ganho/perda são calculados com as cotações do Yahoo Finance.
 - **Histórico** completo: todos os valores importados/registados ficam guardados; os extratos
