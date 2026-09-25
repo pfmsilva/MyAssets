@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.15.0 — 2026-09-25
+- Novos gráficos em Rentabilidade: variação diária (barras verdes/vermelhas) e ganho acumulado das carteiras cotadas em direto, com seletor de período (30 dias, 90 dias, 6 meses, 1 ano, tudo).
+- Cada barra é a diferença de valor entre registos consecutivos, descontando depósitos e levantamentos do dia; a última barra, tracejada, é o dia de hoje às cotações do momento (fica de fora do melhor/pior dia por ser parcial).
+- Indicadores de hoje, acumulado, melhor e pior dia, e tabela por carteira com o valor em direto, o ganho de hoje e o do período; ligação a partir do cartão "Carteiras em direto" da visão geral.
+- Os valores grandes nos cartões de indicadores deixam de provocar deslocamento horizontal em ecrãs pequenos.
+
 ## 1.14.0 — 2026-09-21
 - O importador da Binance aceita agora ficheiros com os símbolos do Yahoo por moeda (par em euros e par em dólares) e sem coluna de valor: o valor de cada posição é calculado na importação com a cotação do momento, usando o par em dólares ao câmbio quando não há par em euros.
 - Os símbolos indicados no ficheiro são respeitados (ex.: SUI20947-EUR, S3-USD), o que resolve as moedas que o Yahoo renomeia; sem cotação, fica o valor de compra e um aviso.

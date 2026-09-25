@@ -46,7 +46,7 @@ export function StatTile({
   const body = (
     <div className="card h-full">
       <p className="text-xs font-medium uppercase tracking-wide text-ink-3">{label}</p>
-      <p className="num mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+      <p className="num mt-1 text-2xl font-semibold tracking-tight" style={{ whiteSpace: "normal", overflowWrap: "anywhere" }}>{value}</p>
       {secondary && (
         <p className="mt-0.5 text-sm text-ink-2" title={secondary.title}>
           <span className="text-xs text-ink-3">{secondary.label} </span>

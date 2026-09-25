@@ -6,6 +6,21 @@ import { getPerformance, AssetPerf } from "@/lib/performance";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtPct } from "@/lib/format";
 import { Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { Delta } from "@/components/LiveBadge";
+import { getDailyPnl } from "@/lib/daily-pnl";
+import { CumulativePnlChart, DailyPnlBars } from "@/components/charts/PnlCharts";
+
+const PERIODS = [
+  { days: 30, label: "30 dias" },
+  { days: 90, label: "90 dias" },
+  { days: 180, label: "6 meses" },
+  { days: 365, label: "1 ano" },
+  { days: 3650, label: "Tudo" },
+];
+
+function Signed({ value, digits = 0 }: { value: number | null; digits?: number }) {
+  if (value === null) return <span className="text-ink-3">—</span>;
+  return <span className={`num ${value > 0 ? "text-good" : value < 0 ? "text-bad" : "text-ink-2"}`}>{value > 0 ? "+" : value < 0 ? "-" : ""}{fmtEur(Math.abs(value), digits)}</span>;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +65,13 @@ function PerfTable({ rows, combined }: { rows: AssetPerf[]; combined: AssetPerf 
   );
 }
 
-export default async function PerformancePage() {
+export default async function PerformancePage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
   const user = await requireUser();
-  logView(user, "Rentabilidade");
+  const sp = await searchParams;
+  const days = PERIODS.some((p) => String(p.days) === sp.dias) ? Number(sp.dias) : 90;
+  logView(user, "Rentabilidade", { dias: days });
   const scope = await getScope(user);
-  const { rows, combined } = await getPerformance(scope.assetIds);
+  const [{ rows, combined }, pnl] = await Promise.all([getPerformance(scope.assetIds), getDailyPnl({ assetIds: scope.assetIds, days })]);
   const since = combined?.periods.at(-1);
   const year = combined?.periods[0];
   return (
@@ -68,6 +85,64 @@ export default async function PerformancePage() {
           <StatTile label="Este ano" value={year?.twr != null ? `${year.twr >= 0 ? "+" : ""}${fmtPct(year.twr)}` : "—"} hint={year?.gain != null ? `${year.gain >= 0 ? "+" : "-"}${fmtEur(Math.abs(year.gain), 0)} de ganho` : "sem dados"} />
         </div>
       )}
+      <Card
+        title="Ganhos e perdas das carteiras em direto"
+        className="mt-4"
+        action={
+          <div className="flex flex-wrap gap-1">
+            {PERIODS.map((p) => (
+              <Link key={p.days} href={`/rentabilidade?dias=${p.days}`} scroll={false} className={`btn btn-sm ${p.days === days ? "btn-primary" : ""}`}>{p.label}</Link>
+            ))}
+          </div>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile label="Hoje (em direto)" value={pnl.todayLive !== null ? `${pnl.todayLive >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl.todayLive), 0)}` : "—"} hint={pnl.quotesAt ? `cotações de ${pnl.quotesAt.toLocaleTimeString("pt-PT", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit" })}` : "sem cotações"} />
+          <StatTile label="Acumulado no período" value={`${pnl.totalPnl >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl.totalPnl), 0)}`} hint={pnl.from ? `desde ${fmtDate(pnl.from)}` : "sem registos"} />
+          <StatTile label="Melhor dia" value={pnl.bestDay ? `+${fmtEur(pnl.bestDay.pnl, 0)}` : "—"} hint={pnl.bestDay ? fmtDate(pnl.bestDay.date) : undefined} />
+          <StatTile label="Pior dia" value={pnl.worstDay ? `-${fmtEur(Math.abs(pnl.worstDay.pnl), 0)}` : "—"} hint={pnl.worstDay ? fmtDate(pnl.worstDay.date) : undefined} />
+        </div>
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div>
+            <h3 className="mb-1 text-sm font-medium">Variação diária</h3>
+            <DailyPnlBars data={pnl.points} />
+          </div>
+          <div>
+            <h3 className="mb-1 text-sm font-medium">Ganho acumulado no período</h3>
+            <CumulativePnlChart data={pnl.points} />
+          </div>
+        </div>
+        {pnl.assets.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="table">
+              <thead><tr><th>Carteira</th><th className="text-right">Valor em direto</th><th className="text-right">Hoje</th><th className="text-right">No período</th><th className="text-right">Posições cotadas</th></tr></thead>
+              <tbody>
+                {pnl.assets.map((a) => (
+                  <tr key={a.id}>
+                    <td><Link href={`/ativos/${a.id}`} className="hover:underline">{a.name}</Link><div className="text-xs text-ink-3">{ASSET_TYPE_LABEL[a.type] ?? a.type}</div></td>
+                    <td className="num text-right">{fmtEur(a.value, 0)}</td>
+                    <td className="text-right"><Signed value={a.today} /></td>
+                    <td className="text-right"><Signed value={a.pnl} /></td>
+                    <td className="num text-right text-xs text-ink-3">{a.quoted}/{a.quotable}</td>
+                  </tr>
+                ))}
+                <tr className="font-medium">
+                  <td>Total</td>
+                  <td className="num text-right">{fmtEur(pnl.assets.reduce((s, a) => s + a.value, 0), 0)}</td>
+                  <td className="text-right"><Signed value={pnl.todayLive} /></td>
+                  <td className="text-right"><Signed value={pnl.totalPnl} /></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-ink-3">
+          Cada barra é a diferença de valor entre dois registos consecutivos das carteiras (DEGIRO, XTB, carteiras de ações e cripto), descontando depósitos e levantamentos desse dia; a última barra, tracejada, é o dia de hoje às cotações do momento.
+          {pnl.points.length < 5 ? " Para ter uma barra por dia, ative o registo diário do valor em Administração → Definições." : ""}
+          {pnl.liveError ? ` Cotações: ${pnl.liveError}` : ""}
+        </p>
+      </Card>
       <Card title="Por carteira" className="mt-4"><PerfTable rows={rows} combined={combined} /></Card>
       <Card title="Como é calculado" className="mt-4">
         <ul className="list-inside list-disc space-y-1 text-sm text-ink-2">
