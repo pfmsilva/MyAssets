@@ -32,7 +32,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   const typeSeries = Object.keys(months.at(-1)?.byType ?? {}).map((t) => ({ key: t, name: ASSET_TYPE_LABEL[t] ?? t, color: TYPE_COLORS[t] }));
   return (
     <>
-      <PageHeader title={member.name} subtitle={<Link href="/membros" className="text-accent hover:underline">← Família</Link>} />
+      <PageHeader title={member.name} subtitle={<Link href="/ativos?ver=membro" className="text-accent hover:underline">← Família</Link>} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Património" value={fmtEur(total, 0)} delta={prev && Math.abs((total - prev) / prev) <= 1 ? (total - prev) / prev : null} hint="vs. mês anterior" />
         <StatTile label="Ativos" value={String(mine.length)} />

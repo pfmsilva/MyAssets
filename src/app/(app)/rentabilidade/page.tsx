@@ -2,13 +2,14 @@ import Link from "next/link";
 import { requireUser } from "@/lib/access";
 import { getScope } from "@/lib/scope";
 import { logView } from "@/lib/activity";
-import { getPerformance, AssetPerf } from "@/lib/performance";
+import { getPerformanceOnce, AssetPerf } from "@/lib/performance";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtPct } from "@/lib/format";
 import { Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { Delta } from "@/components/LiveBadge";
 import { getDailyPnl, type Grouping } from "@/lib/daily-pnl";
 import { CumulativePnlChart, DailyPnlBars } from "@/components/charts/PnlCharts";
 import { FilterLinks, FilterToggle } from "@/components/Filters";
+import { InvestSummary } from "@/components/InvestSummary";
 
 const PERIODS = [
   { days: 7, label: "7 dias" },
@@ -93,21 +94,12 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   };
   logView(user, "Rentabilidade", { dias: days, agrupamento: group, soComCotacao: onlyQuoted });
   const scope = await getScope(user);
-  const [{ rows, combined }, pnl] = await Promise.all([getPerformance(scope.assetIds), getDailyPnl({ assetIds: scope.assetIds, days, group, onlyQuoted })]);
+  const [{ rows, combined }, pnl] = await Promise.all([getPerformanceOnce(scope.assetIds), getDailyPnl({ assetIds: scope.assetIds, days, group, onlyQuoted })]);
   const groupLabel = { day: "dia", week: "semana", month: "mês", year: "ano" }[group];
-  const since = combined?.periods.at(-1);
-  const year = combined?.periods[0];
   return (
     <>
-      <PageHeader title="Rentabilidade real" subtitle="Rendimento dos investimentos descontando depósitos e levantamentos: TWR (rendimento do gestor, independente dos fluxos) e XIRR (rendimento anualizado do teu dinheiro)." />
-      {combined && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile label="Investimentos" value={fmtEur(combined.value, 0)} hint={`${rows.length} carteiras · desde ${combined.firstDate ? fmtDate(combined.firstDate) : "—"}`} />
-          <StatTile label="Ganho desde o início" value={since?.gain !== null && since?.gain !== undefined ? `${since.gain >= 0 ? "+" : "-"}${fmtEur(Math.abs(since.gain), 0)}` : "—"} hint="valor − valor inicial − fluxos" />
-          <StatTile label="TWR desde o início" value={since?.twr != null ? `${since.twr >= 0 ? "+" : ""}${fmtPct(since.twr)}` : "—"} hint={since?.annualized != null ? `${since.annualized >= 0 ? "+" : ""}${fmtPct(since.annualized)} ao ano` : "aproximação mensal"} />
-          <StatTile label="Este ano" value={year?.twr != null ? `${year.twr >= 0 ? "+" : ""}${fmtPct(year.twr)}` : "—"} hint={year?.gain != null ? `${year.gain >= 0 ? "+" : "-"}${fmtEur(Math.abs(year.gain), 0)} de ganho` : "sem dados"} />
-        </div>
-      )}
+      <PageHeader title="Investimentos · ganhos e rentabilidade" subtitle="Rendimento dos investimentos descontando depósitos e levantamentos: TWR (rendimento do gestor, independente dos fluxos) e XIRR (rendimento anualizado do teu dinheiro)." />
+      <InvestSummary assetIds={scope.assetIds} />
       <Card
         title="Ganhos e perdas das carteiras em direto"
         className="mt-4"

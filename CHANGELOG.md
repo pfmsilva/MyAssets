@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.19.0 — 2026-09-26
+- A lista por membro da família passa a ser uma vista da página de ativos ("ver por: ativo / membro"); `/membros` reencaminha para lá e as fichas de cada membro mantêm-se.
+- As três secções de Investimentos (ganhos e rentabilidade, alocação-alvo, análise de IA) passam a partilhar o mesmo resumo de topo — investimentos, valor em direto, ganho de hoje e ganho desde o início — deixando de repetir indicadores diferentes em cada uma.
+- Administração → Definições reorganizada em secções que se abrem, cada uma com o estado resumido numa linha (registo de atividade, alertas, backup e valor diário, prova de vida, análise de IA).
+
 ## 1.18.0 — 2026-09-26
 - Importação sem escolher o formato: o ficheiro é reconhecido pelo conteúdo (BPI, Revolut, Banco CTT, carteira e transações DEGIRO, Binance, XTB e Optimize) e só é preciso escolher à mão se não for reconhecido. O resultado diz qual o formato detetado.
 - Novo botão "Atualizar tudo" na visão geral e na página de cada carteira: refresca as cotações, recalcula as carteiras de ações e regista o valor do dia, substituindo os vários botões separados.

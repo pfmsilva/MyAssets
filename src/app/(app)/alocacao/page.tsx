@@ -5,6 +5,7 @@ import { getAllocation } from "@/lib/allocation";
 import { getSettings } from "@/lib/settings";
 import { ASSET_CLASS_COLOR, ASSET_CLASS_LABEL, fmtEur, fmtPct } from "@/lib/format";
 import { Card, PageHeader, StatTile } from "@/components/ui";
+import { InvestSummary } from "@/components/InvestSummary";
 import { Donut } from "@/components/charts/Donut";
 import { AllocationEditor, ClassFixer } from "@/components/AllocationEditor";
 
@@ -25,11 +26,12 @@ export default async function AllocationPage() {
   return (
     <>
       <PageHeader
-        title="Alocação-alvo"
+        title="Investimentos · alocação-alvo"
         subtitle={`Repartição do património por classe de ativo face ao alvo definido. ${a.usedLive ? "Valores às cotações do momento onde existem." : "Valores do último registo de cada ativo."}`}
       />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Total considerado" value={fmtEur(a.total, 0)} hint={`${a.rows.filter((r) => r.current > 0).length} classes com valor`} />
+      <InvestSummary assetIds={scope.assetIds} />
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="Total considerado" value={fmtEur(a.total, 0)} hint={`todo o património · ${a.rows.filter((r) => r.current > 0).length} classes com valor`} />
         <StatTile label="Fora da tolerância" value={hasTargets ? String(off.length) : "—"} hint={hasTargets ? `tolerância de ${a.bandPp} pp` : "defina os alvos abaixo"} />
         <StatTile label="Maior desvio" value={worst?.driftPp != null ? `${worst.driftPp > 0 ? "+" : ""}${worst.driftPp.toFixed(1)} pp` : "—"} hint={worst ? ASSET_CLASS_LABEL[worst.assetClass] : undefined} />
         <StatTile label="Reforço para equilibrar" value={a.newMoneyNeeded != null ? fmtEur(a.newMoneyNeeded, 0) : "—"} hint="dinheiro novo, sem vender nada" />

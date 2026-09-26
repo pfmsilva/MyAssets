@@ -8,6 +8,7 @@ import { fmtEur } from "@/lib/format";
 import { Alert, Card, Empty, PageHeader } from "@/components/ui";
 import { getScope } from "@/lib/scope";
 import { AiAnalysisRun } from "@/components/AiAnalysisRun";
+import { InvestSummary } from "@/components/InvestSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -48,10 +49,11 @@ export default async function AnalysisPage() {
   return (
     <>
       <PageHeader
-        title="Análise de IA"
+        title="Investimentos · análise de IA"
         subtitle="Uma leitura do património feita pelo Claude a partir dos números que a aplicação calcula. Serve para levantar questões, não para decidir por si."
       />
 
+      <InvestSummary />
       {!s.aiEnabled && (
         <Alert kind="info">
           A análise está desativada. {isAdmin ? <>Ative-a em <Link className="underline" href="/admin/definicoes">Administração · Definições</Link>.</> : "Peça a um administrador para a ativar."}

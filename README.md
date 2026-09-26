@@ -7,6 +7,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Perfis de utilizador**: Administração, Atualização, Consulta (login Google). Cada utilizador pode ser
   associado a um ou mais membros da família e, nesse caso, só vê os ativos, movimentos e dashboards
   desses membros (administradores veem sempre tudo).
+- **Navegação**: seis áreas (Visão geral, Património, Gastos, Investimentos, Importar, Administração), com as
+  páginas de cada área em separadores. Em Património, a lista por membro é uma vista dos ativos
+  (`/ativos?ver=membro`); em Investimentos, as três secções partilham o mesmo resumo de topo.
 - **Registo de atividade** (administrador): sessões, páginas consultadas, importações, valores registados,
   categorizações, alterações administrativas e exportações, com IP e tipo de dispositivo, filtrável por
   utilizador, tipo, datas e texto.

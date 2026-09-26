@@ -12,7 +12,7 @@ type Page = { title: string; href: string; words: string; min?: Role; ai?: boole
 
 const PAGES: Page[] = [
   { title: "Visão geral", href: "/", words: "inicio dashboard resumo patrimonio total" },
-  { title: "Família", href: "/membros", words: "membros familia filhos pessoas" },
+  { title: "Família", href: "/ativos?ver=membro", words: "membros familia filhos pessoas titulares" },
   { title: "Ativos", href: "/ativos", words: "contas carteiras ppr cripto dinheiro patrimonio" },
   { title: "Evolução", href: "/historico", words: "historico grafico evolucao patrimonio" },
   { title: "Despesas e orçamento", href: "/despesas", words: "gastos custos categorias poupanca limites budget" },

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { combineSeries, flowsByAsset, loadAssetsWithSnapshots, valueAt, type Flow } from "./asset-series";
 
 export { getAssetFlows, valueAt, type Flow } from "./asset-series";
@@ -136,4 +137,16 @@ export async function getPerformance(assetIds?: string[]) {
   }
   const combined = combinedSnaps.length ? computeAssetPerf({ id: "all", name: "Todos os investimentos", type: "ALL" }, combinedSnaps, combinedFlows, now) : null;
   return { rows, combined };
+}
+
+/** Same as `getPerformance`, computed once per request (several sections of the same page use it). */
+const performanceOnce = cache(async (key: string) => getPerformance(key ? key.split(",") : undefined));
+
+export async function getPerformanceOnce(assetIds?: string[]) {
+  const key = assetIds ? [...assetIds].sort().join(",") : "";
+  try {
+    return await performanceOnce(key);
+  } catch {
+    return getPerformance(assetIds);
+  }
 }

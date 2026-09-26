@@ -37,7 +37,7 @@ function isActive(pathname: string, href: string) {
 export function GroupTabs({ aiEnabled }: { aiEnabled: boolean }) {
   const pathname = usePathname();
   const group = groupFor(pathname);
-  const children = (group?.children ?? []).filter((c: NavChild) => !c.ai || aiEnabled);
+  const children = (group?.children ?? []).filter((c: NavChild) => !c.hidden && (!c.ai || aiEnabled));
   if (children.length < 2) return null;
   return (
     <nav className="mb-4 flex flex-wrap gap-1 border-b border-border pb-2">

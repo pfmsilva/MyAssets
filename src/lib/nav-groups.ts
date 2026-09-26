@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 
-export type NavChild = { href: string; label: string; ai?: boolean };
+export type NavChild = { href: string; label: string; ai?: boolean; hidden?: boolean };
 export type NavGroup = {
   href: string; // where the entry leads (the first page of the group)
   label: string;
@@ -20,8 +20,8 @@ export const NAV_GROUPS: NavGroup[] = [
     short: "Ativos",
     children: [
       { href: "/ativos", label: "Ativos" },
-      { href: "/membros", label: "Família" },
       { href: "/historico", label: "Evolução" },
+      { href: "/membros", label: "Família", hidden: true }, // a lista vive em /ativos?ver=membro; as fichas de cada membro continuam aqui
     ],
   },
   {
