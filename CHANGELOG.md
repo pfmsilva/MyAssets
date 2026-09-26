@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.17.0 — 2026-09-26
+- Menu simplificado de onze para seis entradas: Visão geral, Património (ativos, família, evolução), Gastos (despesas e orçamento, movimentos), Investimentos (ganhos e rentabilidade, alocação, análise de IA), Importar e Administração. As páginas de cada área aparecem como separadores no topo.
+- O orçamento passa a fazer parte da página de despesas, com o seu seletor de mês, execução por categoria e limites editáveis; `/orcamento` reencaminha para a nova secção e as ligações antigas continuam a funcionar.
+- Barra inferior em telemóvel com as quatro áreas principais.
+
 ## 1.16.0 — 2026-09-26
 - Ganhos e perdas: novo período "7 dias", consolidação por dia, semana, mês ou ano, e filtro "só com cotação" que mostra exatamente as carteiras do cartão "Carteiras em direto" da visão geral.
 - Os indicadores e os eixos acompanham a consolidação escolhida (melhor/pior dia, semana, mês ou ano) e a barra que inclui o valor em direto continua tracejada.

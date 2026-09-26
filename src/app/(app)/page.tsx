@@ -73,7 +73,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <div className="mt-4">
           <Alert kind={budgetOver.length ? "error" : "info"}>
             Orçamento deste mês: {budgetOver.length ? `${budgetOver.length} categoria(s) acima do limite (${budgetOver.map((r) => r.name).join(", ")})` : ""}{budgetOver.length && budgetWarn.length ? "; " : ""}{budgetWarn.length ? `${budgetWarn.length} perto do limite (${budgetWarn.map((r) => r.name).join(", ")})` : ""}.{" "}
-            <Link href="/orcamento" className="underline">Ver orçamento</Link>
+            <Link href="/despesas#orcamento" className="underline">Ver orçamento</Link>
           </Alert>
         </div>
       )}

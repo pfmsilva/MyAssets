@@ -20,7 +20,8 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   responder. Os números nunca são calculados pelo modelo; os nomes dos membros podem ir anonimizados.
   Requer `ANTHROPIC_API_KEY` e a ativação em Administração → Definições. Não é aconselhamento financeiro.
 - **Alocação-alvo**: peso pretendido por classe de ativo, desvio face ao atual e reequilíbrio (a vender/comprar ou só com reforços).
-- **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
+- **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior,
+  dentro da própria página de despesas (`/despesas#orcamento`).
 - **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
 - **Ganhos e perdas** (em Rentabilidade): gráfico de barras com a variação das carteiras cotadas (DEGIRO, XTB,
   carteiras de ações, cripto), descontando depósitos e levantamentos, e gráfico do ganho acumulado. Período de

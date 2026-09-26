@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
-import { BottomNav, SideNav, NavItem } from "@/components/nav";
+import { BottomNav, GroupTabs, SideNav, NavItem } from "@/components/nav";
+import { NAV_GROUPS } from "@/lib/nav-groups";
 import { hasRole, ROLE_LABEL } from "@/lib/access";
 import { versionLabel, versionTitle } from "@/lib/version";
 import { getSettings } from "@/lib/settings";
@@ -12,21 +13,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session?.user) redirect("/login");
   const user = session.user;
   const settings = await getSettings();
-  const items: NavItem[] = [
-    { href: "/", label: "Visão geral", icon: "home", short: "Início" },
-    { href: "/membros", label: "Família", icon: "users" },
-    { href: "/ativos", label: "Ativos", icon: "wallet" },
-    { href: "/historico", label: "Evolução", icon: "chart" },
-    { href: "/despesas", label: "Despesas", icon: "receipt" },
-    { href: "/orcamento", label: "Orçamento", icon: "target" },
-    { href: "/rentabilidade", label: "Rentabilidade", icon: "trend" },
-    { href: "/alocacao", label: "Alocação", icon: "pie" },
-    { href: "/movimentos", label: "Movimentos", icon: "list" },
-  ];
-  if (settings.aiEnabled) items.splice(8, 0, { href: "/analise", label: "Análise de IA", icon: "spark", short: "IA" });
-  if (hasRole(user.role, "EDITOR")) items.push({ href: "/importar", label: "Importar", icon: "upload" });
-  if (hasRole(user.role, "ADMIN")) items.push({ href: "/admin", label: "Administração", icon: "settings", short: "Admin" });
-  const mobileItems = items.filter((i) => ["/", "/ativos", "/historico", "/despesas", "/movimentos"].includes(i.href));
+  const items: NavItem[] = NAV_GROUPS.filter((g) => !g.min || hasRole(user.role, g.min)).map((g) => ({ href: g.href, label: g.label, icon: g.icon, short: g.short }));
+  const mobileItems = items.filter((i) => ["/", "/ativos", "/despesas", "/rentabilidade"].includes(i.href));
   const more = items.filter((i) => !mobileItems.includes(i));
 
   return (
@@ -72,7 +60,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </details>
         </header>
-        <main className="px-4 py-4 pb-24 md:px-8 md:py-6 md:pb-8">{children}</main>
+        <main className="px-4 py-4 pb-24 md:px-8 md:py-6 md:pb-8">
+          <GroupTabs aiEnabled={settings.aiEnabled} />
+          {children}
+        </main>
       </div>
       <BottomNav items={mobileItems} />
     </div>

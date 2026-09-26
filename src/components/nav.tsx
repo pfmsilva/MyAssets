@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { groupFor, isChildActive, type NavChild } from "@/lib/nav-groups";
+
 export type NavItem = { href: string; label: string; icon: string; short?: string };
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -28,7 +30,28 @@ export function Icon({ name, className = "h-5 w-5" }: { name: string; className?
 }
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return groupFor(pathname)?.href === href;
+}
+
+/** Pages of the current group, as tabs under the page title. */
+export function GroupTabs({ aiEnabled }: { aiEnabled: boolean }) {
+  const pathname = usePathname();
+  const group = groupFor(pathname);
+  const children = (group?.children ?? []).filter((c: NavChild) => !c.ai || aiEnabled);
+  if (children.length < 2) return null;
+  return (
+    <nav className="mb-4 flex flex-wrap gap-1 border-b border-border pb-2">
+      {children.map((c) => (
+        <Link
+          key={c.href}
+          href={c.href}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${isChildActive(pathname, c.href) ? "bg-accent/10 text-accent" : "text-ink-2 hover:bg-surface-2 hover:text-ink"}`}
+        >
+          {c.label}
+        </Link>
+      ))}
+    </nav>
+  );
 }
 
 export function SideNav({ items }: { items: NavItem[] }) {

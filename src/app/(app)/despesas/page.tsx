@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/access";
+import { hasRole, requireUser } from "@/lib/access";
 import { logView } from "@/lib/activity";
 import { assetScopeWhere, canSeeAsset, getScope } from "@/lib/scope";
 import { prisma } from "@/lib/prisma";
@@ -8,16 +8,18 @@ import { fmtEur, fmtPct, monthLabel } from "@/lib/format";
 import { Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { CategoryBars, IncomeExpenseBars, SavingsLine } from "@/components/charts/ExpenseCharts";
 import { Donut } from "@/components/charts/Donut";
+import { BudgetSection } from "./BudgetSection";
 
 export const dynamic = "force-dynamic";
 
-export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ months?: string; asset?: string }> }) {
+export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ months?: string; asset?: string; month?: string }> }) {
   const user = await requireUser();
-  const { months = "12", asset: assetParam = "" } = await searchParams;
+  const { months = "12", asset: assetParam = "", month: monthParam } = await searchParams;
+  const budgetMonth = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : new Date().toISOString().slice(0, 7);
   const scope = await getScope(user);
   const asset = assetParam && canSeeAsset(scope, assetParam) ? assetParam : "";
   const n = Number(months) || 12;
-  logView(user, "Despesas", { months: n, asset: asset || null });
+  logView(user, "Despesas e orçamento", { months: n, asset: asset || null, mes: budgetMonth });
   const [exp, nw, assets] = await Promise.all([getExpenseSeries({ months: n, assetId: asset || undefined, assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds }), prisma.asset.findMany({ where: { type: "CURRENT_ACCOUNT", active: true, ...assetScopeWhere(scope) }, orderBy: { sortOrder: "asc" } })]);
   const cats = exp.categories;
   const top = cats.slice(0, 8).map((c) => c.name);
@@ -45,16 +47,26 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const totInvest = exp.months.reduce((s, m) => s + m.investment, 0);
   const uncat = exp.months.reduce((s, m) => s + m.uncategorizedIn, 0);
   const avg = exp.months.length ? totExpense / exp.months.length : 0;
+  const qs = (over: { months?: string; asset?: string; month?: string }) => {
+    const p = new URLSearchParams();
+    const m = over.months ?? months;
+    const a = over.asset ?? asset;
+    const mo = over.month ?? monthParam ?? "";
+    if (m !== "12") p.set("months", m);
+    if (a) p.set("asset", a);
+    if (mo) p.set("month", mo);
+    const q = p.toString();
+    return q ? `?${q}` : "?";
+  };
   const opt = (k: string, v: string, label: string, cur: string) => (
-    <Link key={`${k}-${v}`} href={`?months=${k === "months" ? v : months}&asset=${k === "asset" ? v : asset}`} className={`btn btn-sm ${cur === v ? "btn-primary" : ""}`}>{label}</Link>
+    <Link key={`${k}-${v}`} href={qs(k === "months" ? { months: v } : { asset: v })} className={`btn btn-sm ${cur === v ? "btn-primary" : ""}`}>{label}</Link>
   );
   return (
     <>
       <PageHeader
-        title="Despesas e poupança"
+        title="Despesas, poupança e orçamento"
         subtitle="Baseado nos movimentos importados das contas à ordem. Transferências e investimentos não contam como despesa."
         actions={<>
-          <Link href="/orcamento" className="btn btn-sm">Orçamento →</Link>
           <div className="flex gap-1">{opt("months", "3", "3 m", months)}{opt("months", "6", "6 m", months)}{opt("months", "12", "12 m", months)}{opt("months", "24", "24 m", months)}</div>
           <div className="flex gap-1">{opt("asset", "", "Todas", asset)}{assets.map((a) => opt("asset", a.id, a.name, asset))}</div>
         </>}
@@ -68,6 +80,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       {uncat > 0 && (
         <p className="mt-3 text-xs text-ink-3">Entradas sem categoria (não contadas como rendimento): {fmtEur(uncat)}. <Link href="/movimentos?category=none&sign=in" className="text-accent underline">Categorizar</Link></p>
       )}
+      <BudgetSection month={budgetMonth} assetIds={scope.assetIds} editable={hasRole(user.role, "EDITOR")} monthLink={(m) => qs({ month: m })} />
       <Card title="Despesas por categoria" className="mt-4"><CategoryBars data={barData} categories={cats} /></Card>
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Rendimentos vs despesas"><IncomeExpenseBars data={exp.months.map((m) => ({ month: m.month, income: Math.round(m.income), expense: Math.round(m.expense), investment: Math.round(m.investment) }))} /></Card>
