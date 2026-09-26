@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 1.15.1 — 2026-09-26
+- A tabela dos ganhos diários passa a separar "último registo" de "em direto" e a marcar as carteiras sem cotação, ficando o total em direto igual ao do cartão "Carteiras em direto" da visão geral (que lista apenas as carteiras com cotação).
+
 ## 1.15.0 — 2026-09-25
 - Novos gráficos em Rentabilidade: variação diária (barras verdes/vermelhas) e ganho acumulado das carteiras cotadas em direto, com seletor de período (30 dias, 90 dias, 6 meses, 1 ano, tudo).
 - Cada barra é a diferença de valor entre registos consecutivos, descontando depósitos e levantamentos do dia; a última barra, tracejada, é o dia de hoje às cotações do momento (fica de fora do melhor/pior dia por ser parcial).

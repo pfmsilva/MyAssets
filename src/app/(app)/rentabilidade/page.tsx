@@ -115,20 +115,22 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         {pnl.assets.length > 0 && (
           <div className="mt-4 overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Carteira</th><th className="text-right">Valor em direto</th><th className="text-right">Hoje</th><th className="text-right">No período</th><th className="text-right">Posições cotadas</th></tr></thead>
+              <thead><tr><th>Carteira</th><th className="text-right">Último registo</th><th className="text-right">Em direto</th><th className="text-right">Hoje</th><th className="text-right">No período</th><th className="text-right">Posições cotadas</th></tr></thead>
               <tbody>
                 {pnl.assets.map((a) => (
                   <tr key={a.id}>
-                    <td><Link href={`/ativos/${a.id}`} className="hover:underline">{a.name}</Link><div className="text-xs text-ink-3">{ASSET_TYPE_LABEL[a.type] ?? a.type}</div></td>
-                    <td className="num text-right">{fmtEur(a.value, 0)}</td>
-                    <td className="text-right"><Signed value={a.today} /></td>
+                    <td><Link href={`/ativos/${a.id}`} className="hover:underline">{a.name}</Link><div className="text-xs text-ink-3">{ASSET_TYPE_LABEL[a.type] ?? a.type}{a.recordedAt ? ` · ${fmtDate(a.recordedAt)}` : ""}</div></td>
+                    <td className="num text-right">{fmtEur(a.recorded, 0)}</td>
+                    <td className="num text-right">{a.live ? fmtEur(a.value, 0) : <span className="text-xs text-ink-3">sem cotação</span>}</td>
+                    <td className="text-right">{a.live ? <Signed value={a.today} /> : <span className="text-xs text-ink-3">—</span>}</td>
                     <td className="text-right"><Signed value={a.pnl} /></td>
                     <td className="num text-right text-xs text-ink-3">{a.quoted}/{a.quotable}</td>
                   </tr>
                 ))}
                 <tr className="font-medium">
                   <td>Total</td>
-                  <td className="num text-right">{fmtEur(pnl.assets.reduce((s, a) => s + a.value, 0), 0)}</td>
+                  <td className="num text-right">{fmtEur(pnl.assets.reduce((s, a) => s + a.recorded, 0), 0)}</td>
+                  <td className="num text-right">{fmtEur(pnl.assets.filter((a) => a.live).reduce((s, a) => s + a.value, 0), 0)}</td>
                   <td className="text-right"><Signed value={pnl.todayLive} /></td>
                   <td className="text-right"><Signed value={pnl.totalPnl} /></td>
                   <td></td>
@@ -139,6 +141,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         )}
         <p className="mt-3 text-xs text-ink-3">
           Cada barra é a diferença de valor entre dois registos consecutivos das carteiras (DEGIRO, XTB, carteiras de ações e cripto), descontando depósitos e levantamentos desse dia; a última barra, tracejada, é o dia de hoje às cotações do momento.
+          A coluna <b>em direto</b> e o total correspondem ao cartão “Carteiras em direto” da visão geral, que lista apenas as carteiras com cotação; as carteiras sem cotação entram nos gráficos e no total do último registo pelo valor registado.
           {pnl.points.length < 5 ? " Para ter uma barra por dia, ative o registo diário do valor em Administração → Definições." : ""}
           {pnl.liveError ? ` Cotações: ${pnl.liveError}` : ""}
         </p>

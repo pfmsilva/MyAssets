@@ -18,7 +18,10 @@ export type AssetPnl = {
   id: string;
   name: string;
   type: string;
-  value: number;
+  value: number; // live where there are quotes, last recorded value otherwise
+  recorded: number; // last recorded value
+  recordedAt: string | null;
+  live: boolean; // has live quotes right now
   today: number | null; // day change from the quotes
   pnl: number; // gain in the window, flows taken out
   quoted: number;
@@ -79,7 +82,10 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   for (const a of withData) flowsByAsset.set(a.id, await getAssetFlows(a));
 
   const live = await getLiveValuations(withData.map((a) => a.id), { resolve: false });
-  const liveTotal = withData.reduce((s, a) => s + (live.get(a.id)?.liveTotal ?? valueAt(a.snapshots, today) ?? 0), 0);
+  const liveTotal = withData.reduce((s, a) => {
+    const l = live.get(a.id);
+    return s + (l && l.quoted > 0 ? l.liveTotal : (valueAt(a.snapshots, today) ?? 0));
+  }, 0);
   const anyLive = withData.some((a) => (live.get(a.id)?.quoted ?? 0) > 0);
   const quotesAt = [...live.values()].map((l) => l.quotesAt).filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
   const liveError = [...live.values()].map((l) => l.error).find((e) => !!e) ?? null;
@@ -113,14 +119,19 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
     const l = live.get(a.id);
     const start = before ?? inWindow[0];
     const startValue = start ? (valueAt(a.snapshots, new Date(start)) ?? 0) : 0;
-    const endValue = l?.liveTotal ?? valueAt(a.snapshots, today) ?? 0;
+    const recorded = valueAt(a.snapshots, today) ?? 0;
+    const hasLive = !!l && l.quoted > 0;
+    const endValue = hasLive ? l.liveTotal : recorded;
     const windowFlows = (flowsByAsset.get(a.id) ?? []).filter((f) => f.date.getTime() > new Date(start ?? iso(today)).getTime()).reduce((s, f) => s + f.amount, 0);
     return {
       id: a.id,
       name: a.name,
       type: a.type,
       value: round(endValue),
-      today: l && l.quoted > 0 ? round(l.dayChangeEur) : null,
+      recorded: round(recorded),
+      recordedAt: a.snapshots.at(-1) ? iso(a.snapshots.at(-1)!.date) : null,
+      live: hasLive,
+      today: hasLive ? round(l.dayChangeEur) : null,
       pnl: round(endValue - startValue - windowFlows),
       quoted: l?.quoted ?? 0,
       quotable: l?.quotable ?? 0,
