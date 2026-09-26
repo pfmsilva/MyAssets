@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.20.0 — 2026-09-26
+- Relatório PDF completo, com índice na primeira página e novas secções: valor em direto com a hora das cotações, investimentos em direto por carteira, rentabilidade (ganho, TWR e XIRR por carteira e global), ganhos e perdas (barras diárias dos últimos 30 dias e semanais dos últimos 6 meses), mais-valias realizadas (incluindo as carteiras de ações manuais, com execuções parciais agrupadas), despesas mês a mês, orçamento do mês e notas de metodologia.
+- A última análise de IA passa a fazer parte do relatório, numa página própria: resumo, observações, riscos e sugestões com a respetiva prioridade, perguntas a responder e o aviso de que não é aconselhamento financeiro.
+- Caracteres que as fontes do PDF não suportam (por exemplo "−", "→" ou "≈" no texto da IA) passam a ser convertidos em vez de aparecerem trocados.
+
 ## 1.19.0 — 2026-09-26
 - A lista por membro da família passa a ser uma vista da página de ativos ("ver por: ativo / membro"); `/membros` reencaminha para lá e as fichas de cada membro mantêm-se.
 - As três secções de Investimentos (ganhos e rentabilidade, alocação-alvo, análise de IA) passam a partilhar o mesmo resumo de topo — investimentos, valor em direto, ganho de hoje e ganho desde o início — deixando de repetir indicadores diferentes em cada uma.

@@ -41,8 +41,11 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   ganho face ao último registo; mapeamento ISIN/ticker → símbolo Yahoo automático e editável em
   Administração → Cotações, com links para o Yahoo. `QUOTES_MOCK="true"` simula cotações em desenvolvimento.
 - **Versão**: versão, commit e data de build visíveis na barra lateral, no login e em Administração → histórico (`CHANGELOG.md`).
-- **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
-  membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
+- **Relatório PDF** (administrador, `/api/relatorio`): índice; resumo e valor em direto; distribuição; ativos
+  (incluindo inativos); património por membro; evolução; investimentos em direto; rentabilidade (TWR/XIRR);
+  ganhos e perdas diários e semanais; alocação face ao alvo; composição das carteiras; mais-valias realizadas;
+  rendimentos, despesas e poupança mês a mês; orçamento do mês; última análise de IA; detalhe por ativo e notas
+  de metodologia.
 - **Importação de ficheiros** (formato reconhecido automaticamente pelo conteúdo): extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx),
   carteira DEGIRO (.xls), transações DEGIRO (.csv), ativos Binance (.csv), relatório XTB (.xlsx),
   extrato mensal Optimize (.pdf).
