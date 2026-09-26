@@ -1,6 +1,6 @@
 import { AssetClass, AssetType } from "@prisma/client";
 import { prisma } from "./prisma";
-import { getLiveValuations, LiveValuation } from "./quotes";
+import { getLiveValuationsOnce, LiveValuation } from "./quotes";
 
 /** Class assumed for an asset that has no detailed positions. */
 export const DEFAULT_CLASS_BY_TYPE: Record<AssetType, AssetClass> = {
@@ -71,7 +71,7 @@ async function contributions(opts: { live?: boolean; assetIds?: string[] }): Pro
   const byKey = new Map(instruments.map((i) => [i.key.toUpperCase(), i]));
   const composition = new Map<string, (typeof positionSnaps)[number]>();
   for (const s of positionSnaps) if (!composition.has(s.assetId)) composition.set(s.assetId, s);
-  const live: Map<string, LiveValuation> = opts.live ? await getLiveValuations(ids, { resolve: false }) : new Map();
+  const live: Map<string, LiveValuation> = opts.live ? await getLiveValuationsOnce(ids, { resolve: false }) : new Map();
 
   let usedLive = false;
   const list: Contribution[] = [];

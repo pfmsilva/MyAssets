@@ -9,6 +9,7 @@ import { Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { CategoryBars, IncomeExpenseBars, SavingsLine } from "@/components/charts/ExpenseCharts";
 import { Donut } from "@/components/charts/Donut";
 import { BudgetSection } from "./BudgetSection";
+import { FilterLinks } from "@/components/Filters";
 
 export const dynamic = "force-dynamic";
 
@@ -58,17 +59,15 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
     const q = p.toString();
     return q ? `?${q}` : "?";
   };
-  const opt = (k: string, v: string, label: string, cur: string) => (
-    <Link key={`${k}-${v}`} href={qs(k === "months" ? { months: v } : { asset: v })} className={`btn btn-sm ${cur === v ? "btn-primary" : ""}`}>{label}</Link>
-  );
+
   return (
     <>
       <PageHeader
         title="Despesas, poupança e orçamento"
         subtitle="Baseado nos movimentos importados das contas à ordem. Transferências e investimentos não contam como despesa."
         actions={<>
-          <div className="flex gap-1">{opt("months", "3", "3 m", months)}{opt("months", "6", "6 m", months)}{opt("months", "12", "12 m", months)}{opt("months", "24", "24 m", months)}</div>
-          <div className="flex gap-1">{opt("asset", "", "Todas", asset)}{assets.map((a) => opt("asset", a.id, a.name, asset))}</div>
+          <FilterLinks options={["3", "6", "12", "24"].map((v) => ({ value: v, label: `${v} m`, href: qs({ months: v }) }))} current={months} />
+          <FilterLinks options={[{ value: "", label: "Todas", href: qs({ asset: "" }) }, ...assets.map((a) => ({ value: a.id, label: a.name, href: qs({ asset: a.id }) }))]} current={asset} />
         </>}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

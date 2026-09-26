@@ -1,47 +1,6 @@
-import { prisma } from "./prisma";
-import { normalize } from "./categorize";
+import { combineSeries, flowsByAsset, loadAssetsWithSnapshots, valueAt, type Flow } from "./asset-series";
 
-export type Flow = { date: Date; amount: number; source: string; description: string }; // amount > 0 = money into the asset
-
-/** Kinds of an asset's own transactions that are external cash flows (in/out of the asset). */
-const FLOW_IN = [/^deposit$/i, /^dep[óo]sito$/i, /^fluxo manual/i, /^transfer[êe]ncia recebida/i];
-const FLOW_OUT = [/^withdrawal$/i, /^levantamento$/i, /^resgate$/i, /^transfer[êe]ncia enviada/i];
-
-function isFlowKind(kind: string | null, amount: number): boolean {
-  if (!kind) return false;
-  if (FLOW_IN.some((r) => r.test(kind))) return true;
-  if (FLOW_OUT.some((r) => r.test(kind))) return true;
-  void amount;
-  return false;
-}
-
-/** External cash flows of an asset: its own deposit/withdrawal transactions, or (when it has none)
- *  transfers from current accounts categorised as investment whose description names the asset. */
-export async function getAssetFlows(asset: { id: string; name: string; institution: string; type: string }): Promise<Flow[]> {
-  const own = await prisma.transaction.findMany({ where: { assetId: asset.id, status: "COMPLETED" }, orderBy: [{ date: "asc" }, { seq: "asc" }], select: { date: true, amount: true, kind: true, description: true } });
-  const ownFlows: Flow[] = own.filter((t) => isFlowKind(t.kind, t.amount)).map((t) => ({ date: t.date, amount: t.amount, source: "movimento", description: t.description }));
-  if (ownFlows.length) return ownFlows;
-  if (asset.type === "CURRENT_ACCOUNT" || asset.type === "CASH") return [];
-  // transfers from current accounts (category kind INVESTMENT) mentioning the asset
-  const candidates = await prisma.transaction.findMany({
-    where: { status: "COMPLETED", asset: { type: "CURRENT_ACCOUNT" }, category: { kind: "INVESTMENT" } },
-    orderBy: { date: "asc" },
-    select: { date: true, amount: true, description: true, asset: { select: { name: true } } },
-  });
-  const keys = [asset.institution, asset.name].map(normalize).filter((k) => k.length >= 3);
-  return candidates
-    .filter((t) => keys.some((k) => normalize(t.description).includes(k)))
-    .map((t) => ({ date: t.date, amount: -t.amount, source: `transferência ${t.asset.name}`, description: t.description }));
-}
-
-export function valueAt(snapshots: { date: Date; value: number }[], date: Date): number | null {
-  let v: number | null = null;
-  for (const s of snapshots) {
-    if (s.date.getTime() <= date.getTime()) v = s.value;
-    else break;
-  }
-  return v;
-}
+export { getAssetFlows, valueAt, type Flow } from "./asset-series";
 
 // ---------- XIRR ----------
 export function xirr(flows: { date: Date; amount: number }[]): number | null {
@@ -161,28 +120,14 @@ export function computeAssetPerf(asset: { id: string; name: string; type: string
 
 /** Performance of investment assets (brokerage, PPR, crypto) plus the combined portfolio. */
 export async function getPerformance(assetIds?: string[]) {
-  const assets = await prisma.asset.findMany({
-    where: { active: true, type: { in: ["BROKERAGE", "STOCK_PORTFOLIO", "PPR", "CRYPTO"] }, ...(assetIds ? { id: { in: assetIds } } : {}) },
-    orderBy: { sortOrder: "asc" },
-    include: { snapshots: { orderBy: { date: "asc" }, select: { date: true, value: true } } },
-  });
+  const assets = await loadAssetsWithSnapshots({ types: ["BROKERAGE", "STOCK_PORTFOLIO", "PPR", "CRYPTO"], assetIds });
+  const withData = assets.filter((a) => a.snapshots.length);
+  const flows = await flowsByAsset(withData);
   const now = new Date();
-  const rows: AssetPerf[] = [];
-  for (const a of assets) {
-    if (!a.snapshots.length) continue;
-    const flows = await getAssetFlows(a);
-    rows.push(computeAssetPerf(a, a.snapshots, flows, now));
-  }
+  const rows: AssetPerf[] = withData.map((a) => computeAssetPerf(a, a.snapshots, flows.get(a.id) ?? [], now));
   // combined portfolio: carried values summed at every valuation date; an asset joining later counts as an
   // inflow of its first value on that date, and its later flows are kept.
-  const withData = assets.filter((a) => a.snapshots.length);
-  const dates = new Set<string>();
-  for (const a of withData) for (const s of a.snapshots) dates.add(s.date.toISOString().slice(0, 10));
-  const combinedSnaps = [...dates].sort().map((d) => {
-    const date = new Date(d);
-    const value = withData.reduce((s, a) => s + (valueAt(a.snapshots, date) ?? 0), 0);
-    return { date, value };
-  });
+  const combinedSnaps = combineSeries(withData);
   const combinedStart = combinedSnaps[0]?.date;
   const combinedFlows: Flow[] = [];
   for (const r of rows) {

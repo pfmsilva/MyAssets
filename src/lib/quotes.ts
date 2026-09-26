@@ -1,3 +1,4 @@
+import { cache } from "react";
 import YahooFinance from "yahoo-finance2";
 import { prisma } from "./prisma";
 
@@ -341,6 +342,23 @@ export function toEur(price: number, currency: string, quotes: Map<string, { pri
   const rate = fx ? quotes.get(fx)?.price : undefined;
   if (c === "GBP" && currency !== "GBp" && currency !== "GBX") return rate ? price * rate : null; // real GBP (rare)
   return rate ? base * rate : null;
+}
+
+/**
+ * Same as `getLiveValuations`, but computed once per request: several parts of a page
+ * (visão geral, alocação, análise) ask for the same portfolios and share the result.
+ */
+const liveOnce = cache(async (key: string, resolve: boolean) => getLiveValuations(key ? key.split(",") : [], { resolve }));
+
+export async function getLiveValuationsOnce(assetIds: string[], opts: { resolve?: boolean; force?: boolean } = {}): Promise<Map<string, LiveValuation>> {
+  if (opts.force) return getLiveValuations(assetIds, opts);
+  const key = [...new Set(assetIds)].sort().join(",");
+  try {
+    return await liveOnce(key, opts.resolve ?? true);
+  } catch {
+    // outside a request scope (cron, scripts) React's cache is not available
+    return getLiveValuations(assetIds, opts);
+  }
 }
 
 /** Live valuation of the latest snapshot of each asset (brokerage/crypto). */

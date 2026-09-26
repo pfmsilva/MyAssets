@@ -1,6 +1,5 @@
-import { prisma } from "./prisma";
-import { getAssetFlows, valueAt, type Flow } from "./performance";
-import { getLiveValuations } from "./quotes";
+import { flowsByAsset, loadAssetsWithSnapshots, valueAt } from "./asset-series";
+import { getLiveValuationsOnce } from "./quotes";
 
 /** Asset types whose value is quoted live (Yahoo). */
 export const LIVE_TYPES = ["BROKERAGE", "STOCK_PORTFOLIO", "CRYPTO"] as const;
@@ -107,18 +106,9 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   const days = opts.days ?? 90;
   const group: Grouping = opts.group ?? "day";
   const onlyQuoted = !!opts.onlyQuoted;
-  const assets = await prisma.asset.findMany({
-    where: {
-      active: true,
-      type: { in: [...LIVE_TYPES] },
-      ...(opts.assetIds ? { id: { in: opts.assetIds } } : {}),
-      ...(opts.assetId ? { id: opts.assetId } : {}),
-    },
-    orderBy: { sortOrder: "asc" },
-    include: { snapshots: { orderBy: { date: "asc" }, select: { date: true, value: true } } },
-  });
+  const assets = await loadAssetsWithSnapshots({ types: [...LIVE_TYPES], assetIds: opts.assetIds, assetId: opts.assetId });
   const withSnapshots = assets.filter((a) => a.snapshots.length);
-  const liveAll = await getLiveValuations(withSnapshots.map((a) => a.id), { resolve: false });
+  const liveAll = await getLiveValuationsOnce(withSnapshots.map((a) => a.id), { resolve: false });
   // "só as carteiras com cotação" keeps the same set as the live card of the overview
   const withData = onlyQuoted ? withSnapshots.filter((a) => (liveAll.get(a.id)?.quoted ?? 0) > 0) : withSnapshots;
   if (!withData.length) {
@@ -136,8 +126,7 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   const before = sorted.filter((d) => new Date(d).getTime() < from.getTime()).at(-1);
   const dates = (before ? [before, ...inWindow] : inWindow).map((d) => new Date(d));
 
-  const flowsByAsset = new Map<string, Flow[]>();
-  for (const a of withData) flowsByAsset.set(a.id, await getAssetFlows(a));
+  const flows = await flowsByAsset(withData);
 
   const live = liveAll;
   const liveTotal = withData.reduce((s, a) => {
@@ -152,7 +141,7 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   const flowOn = (date: Date) => {
     const d = iso(date);
     let total = 0;
-    for (const list of flowsByAsset.values()) for (const f of list) if (iso(f.date) === d) total += f.amount;
+    for (const list of flows.values()) for (const f of list) if (iso(f.date) === d) total += f.amount;
     return total;
   };
 
@@ -181,7 +170,7 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
     const recorded = valueAt(a.snapshots, today) ?? 0;
     const hasLive = !!l && l.quoted > 0;
     const endValue = hasLive ? l.liveTotal : recorded;
-    const windowFlows = (flowsByAsset.get(a.id) ?? []).filter((f) => f.date.getTime() > new Date(start ?? iso(today)).getTime()).reduce((s, f) => s + f.amount, 0);
+    const windowFlows = (flows.get(a.id) ?? []).filter((f) => f.date.getTime() > new Date(start ?? iso(today)).getTime()).reduce((s, f) => s + f.amount, 0);
     return {
       id: a.id,
       name: a.name,

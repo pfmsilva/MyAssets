@@ -14,7 +14,7 @@ import { TransactionTable } from "@/components/TransactionTable";
 import { deleteSnapshot } from "@/app/actions/snapshots";
 import { deleteImportBatch } from "@/app/actions/import";
 import { getNetWorthSeries } from "@/lib/analytics";
-import { getLiveValuations } from "@/lib/quotes";
+import { getLiveValuationsOnce } from "@/lib/quotes";
 import { computeAssetPerf, getAssetFlows } from "@/lib/performance";
 import { FlowForm } from "@/components/FlowForm";
 import { StockPortfolio } from "@/components/StockPortfolio";
@@ -53,7 +53,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
   const isStockPortfolio = asset.type === "STOCK_PORTFOLIO";
   const withPositions = asset.type === "BROKERAGE" || asset.type === "CRYPTO" || isStockPortfolio;
   const portfolio = isStockPortfolio ? await getPortfolio(id) : null;
-  const live = withPositions && latest?.positions.length ? (await getLiveValuations([asset.id])).get(asset.id) ?? null : null;
+  const live = withPositions && latest?.positions.length ? (await getLiveValuationsOnce([asset.id])).get(asset.id) ?? null : null;
   const liveByPos = new Map(live?.positions.map((p) => [p.id, p]) ?? []);
   // unrealised P/L from acquisition cost (live value when available, else the recorded value)
   const costPositions = latest?.positions.filter((p) => p.costEur !== null) ?? [];

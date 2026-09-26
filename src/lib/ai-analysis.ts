@@ -6,7 +6,7 @@ import { getAllocation } from "./allocation";
 import { byMember, getCurrentValues, getExpenseSeries, getNetWorthSeries, groupBy } from "./analytics";
 import { getPerformance } from "./performance";
 import { getBudgetOverview } from "./budget";
-import { getLiveValuations } from "./quotes";
+import { getLiveValuationsOnce } from "./quotes";
 import { getSettings } from "./settings";
 import { ASSET_CLASS_LABEL, ASSET_TYPE_LABEL } from "./format";
 
@@ -60,7 +60,7 @@ export async function buildSnapshot(opts: { anonymize: boolean; assetId?: string
   ]);
   const total = values.reduce((s, a) => s + a.value, 0);
   const liveIds = values.filter((a) => ["BROKERAGE", "STOCK_PORTFOLIO", "CRYPTO"].includes(a.type)).map((a) => a.id);
-  const live = await getLiveValuations(liveIds, { resolve: false });
+  const live = await getLiveValuationsOnce(liveIds, { resolve: false });
 
   const positions = allocation.rows.flatMap((r) => r.sources.map((s) => ({ nome: s.name, classe: ASSET_CLASS_LABEL[r.assetClass] ?? r.assetClass, valor: round(s.value, 0), peso: round(total ? s.value / total : 0, 4) })));
   positions.sort((a, b) => b.valor - a.valor);

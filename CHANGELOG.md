@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.17.1 — 2026-09-26
+- Arrumação interna sem alterações visíveis: as séries do património passam a ser construídas num único módulo (`asset-series`), partilhado pela evolução, pela rentabilidade e pelos ganhos diários.
+- As cotações em direto são calculadas uma só vez por pedido, em vez de uma vez por secção da página.
+- Filtros de período e agrupamento passam a usar um componente comum.
+
 ## 1.17.0 — 2026-09-26
 - Menu simplificado de onze para seis entradas: Visão geral, Património (ativos, família, evolução), Gastos (despesas e orçamento, movimentos), Investimentos (ganhos e rentabilidade, alocação, análise de IA), Importar e Administração. As páginas de cada área aparecem como separadores no topo.
 - O orçamento passa a fazer parte da página de despesas, com o seu seletor de mês, execução por categoria e limites editáveis; `/orcamento` reencaminha para a nova secção e as ligações antigas continuam a funcionar.

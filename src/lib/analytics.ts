@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { loadAssetsWithSnapshots, monthsBetween } from "./asset-series";
 
 export type AssetValue = {
   id: string;
@@ -54,32 +55,9 @@ export function byMember(values: AssetValue[]) {
 
 export type MonthPoint = { month: string; total: number; byAsset: Record<string, number>; byMember: Record<string, number>; byType: Record<string, number> };
 
-function monthsBetween(from: string, to: string) {
-  const out: string[] = [];
-  let [y, m] = from.split("-").map(Number);
-  const [ty, tm] = to.split("-").map(Number);
-  while (y < ty || (y === ty && m <= tm)) {
-    out.push(`${y}-${String(m).padStart(2, "0")}`);
-    m++;
-    if (m > 12) {
-      m = 1;
-      y++;
-    }
-  }
-  return out;
-}
-
 /** Monthly net worth series: for each month, the latest snapshot of each asset up to month end (carried forward). */
 export async function getNetWorthSeries(opts: { memberId?: string; assetId?: string; assetIds?: string[] } = {}): Promise<{ months: MonthPoint[]; assets: { id: string; name: string; type: string }[] }> {
-  const assets = await prisma.asset.findMany({
-    where: {
-      active: true,
-      ...(opts.assetId ? { id: opts.assetId } : opts.assetIds ? { id: { in: opts.assetIds } } : {}),
-      ...(opts.memberId ? { ownerships: { some: { memberId: opts.memberId } } } : {}),
-    },
-    include: { ownerships: true, snapshots: { orderBy: { date: "asc" }, select: { date: true, value: true } } },
-    orderBy: { sortOrder: "asc" },
-  });
+  const assets = await loadAssetsWithSnapshots({ assetId: opts.assetId, assetIds: opts.assetIds, memberId: opts.memberId, withOwnerships: true });
   const allDates = assets.flatMap((a) => a.snapshots.map((s) => s.date.toISOString().slice(0, 7)));
   if (!allDates.length) return { months: [], assets: [] };
   const first = allDates.sort()[0];
@@ -94,11 +72,12 @@ export async function getNetWorthSeries(opts: { memberId?: string; assetId?: str
         else break;
       }
       if (v === undefined) continue;
-      const share = opts.memberId ? (a.ownerships.find((o) => o.memberId === opts.memberId)?.percent ?? 0) / 100 : 1;
+      const ownerships = a.ownerships ?? [];
+      const share = opts.memberId ? (ownerships.find((o) => o.memberId === opts.memberId)?.percent ?? 0) / 100 : 1;
       const val = v * share;
       p.byAsset[a.id] = val;
       p.byType[a.type] = (p.byType[a.type] ?? 0) + val;
-      for (const o of a.ownerships) p.byMember[o.memberId] = (p.byMember[o.memberId] ?? 0) + (v * o.percent) / 100 * (opts.memberId ? (o.memberId === opts.memberId ? 1 : 0) : 1);
+      for (const o of ownerships) p.byMember[o.memberId] = (p.byMember[o.memberId] ?? 0) + (v * o.percent) / 100 * (opts.memberId ? (o.memberId === opts.memberId ? 1 : 0) : 1);
       p.total += val;
     }
     return p;

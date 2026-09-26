@@ -8,6 +8,7 @@ import { Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { Delta } from "@/components/LiveBadge";
 import { getDailyPnl, type Grouping } from "@/lib/daily-pnl";
 import { CumulativePnlChart, DailyPnlBars } from "@/components/charts/PnlCharts";
+import { FilterLinks, FilterToggle } from "@/components/Filters";
 
 const PERIODS = [
   { days: 7, label: "7 dias" },
@@ -112,20 +113,9 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         className="mt-4"
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap gap-1">
-              {PERIODS.map((p) => (
-                <Link key={p.days} href={link({ dias: p.days })} scroll={false} className={`btn btn-sm ${p.days === days ? "btn-primary" : ""}`}>{p.label}</Link>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-1">
-              <span className="text-xs text-ink-3">agrupar:</span>
-              {GROUPS.map((g) => (
-                <Link key={g.key} href={link({ agr: g.key })} scroll={false} className={`btn btn-sm ${g.key === group ? "btn-primary" : ""}`}>{g.label}</Link>
-              ))}
-            </div>
-            <Link href={link({ cot: !onlyQuoted })} scroll={false} className={`btn btn-sm ${onlyQuoted ? "btn-primary" : ""}`} title="Mostrar apenas as carteiras com cotação do Yahoo, como no cartão da visão geral">
-              {onlyQuoted ? "✓ " : ""}só com cotação
-            </Link>
+            <FilterLinks options={PERIODS.map((p) => ({ value: String(p.days), label: p.label, href: link({ dias: p.days }) }))} current={String(days)} scroll={false} />
+            <FilterLinks label="agrupar:" options={GROUPS.map((g) => ({ value: g.key, label: g.label, href: link({ agr: g.key }) }))} current={group} scroll={false} />
+            <FilterToggle href={link({ cot: !onlyQuoted })} label="só com cotação" on={onlyQuoted} title="Mostrar apenas as carteiras com cotação do Yahoo, como no cartão da visão geral" />
           </div>
         }
       >

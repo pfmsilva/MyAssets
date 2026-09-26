@@ -8,7 +8,7 @@ import { Card, PageHeader, StatTile, Money, Badge, Alert } from "@/components/ui
 import { Donut } from "@/components/charts/Donut";
 import { NetWorthChart } from "@/components/charts/NetWorthChart";
 import { TYPE_COLORS } from "@/components/charts/theme";
-import { getLiveValuations } from "@/lib/quotes";
+import { getLiveValuationsOnce } from "@/lib/quotes";
 import { getBudgetOverview } from "@/lib/budget";
 import { Delta } from "@/components/LiveBadge";
 
@@ -22,7 +22,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const [values, series] = await Promise.all([getCurrentValues({ assetIds: scope.assetIds }), getNetWorthSeries({ assetIds: scope.assetIds })]);
   const total = values.reduce((s, a) => s + a.value, 0);
   const liveAssets = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO");
-  const live = await getLiveValuations(liveAssets.map((a) => a.id), { resolve: false });
+  const live = await getLiveValuationsOnce(liveAssets.map((a) => a.id), { resolve: false });
   const liveRows = liveAssets.map((a) => ({ asset: a, v: live.get(a.id) })).filter((r) => r.v && r.v.quoted > 0) as { asset: (typeof values)[number]; v: NonNullable<ReturnType<typeof live.get>> }[];
   const liveDelta = liveRows.reduce((s, r) => s + r.v.delta, 0);
   const investTotal = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").reduce((s, a) => s + a.value, 0);
