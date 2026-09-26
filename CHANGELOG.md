@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.16.0 — 2026-09-26
+- Ganhos e perdas: novo período "7 dias", consolidação por dia, semana, mês ou ano, e filtro "só com cotação" que mostra exatamente as carteiras do cartão "Carteiras em direto" da visão geral.
+- Os indicadores e os eixos acompanham a consolidação escolhida (melhor/pior dia, semana, mês ou ano) e a barra que inclui o valor em direto continua tracejada.
+- Visão geral: o cartão das carteiras em direto passa a mostrar a data e a hora das cotações do Yahoo Finance.
+
 ## 1.15.1 — 2026-09-26
 - A tabela dos ganhos diários passa a separar "último registo" de "em direto" e a marcar as carteiras sem cotação, ficando o total em direto igual ao do cartão "Carteiras em direto" da visão geral (que lista apenas as carteiras com cotação).
 

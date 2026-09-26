@@ -22,10 +22,11 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Alocação-alvo**: peso pretendido por classe de ativo, desvio face ao atual e reequilíbrio (a vender/comprar ou só com reforços).
 - **Orçamento**: limites mensais por categoria, execução, alertas e comparação mês anterior / ano anterior.
 - **Rentabilidade real**: TWR e XIRR por carteira e global dos investimentos, com fluxos de capital detetados ou manuais.
-- **Ganhos e perdas diários** (em Rentabilidade): gráfico de barras com a variação entre registos consecutivos das
-  carteiras cotadas (DEGIRO, XTB, carteiras de ações, cripto), descontando depósitos e levantamentos, e gráfico do
-  ganho acumulado no período (30 dias a tudo). A última barra é o dia de hoje às cotações do momento. Para ter uma
-  barra por dia, ative o registo diário do valor em Administração → Definições.
+- **Ganhos e perdas** (em Rentabilidade): gráfico de barras com a variação das carteiras cotadas (DEGIRO, XTB,
+  carteiras de ações, cripto), descontando depósitos e levantamentos, e gráfico do ganho acumulado. Período de
+  7 dias a tudo, consolidação por dia, semana, mês ou ano e filtro "só com cotação" (as mesmas carteiras do cartão
+  da visão geral). A última barra inclui o valor de hoje às cotações do momento. Para ter uma barra por dia, ative
+  o registo diário do valor em Administração → Definições.
 - **Prova de vida**: e-mail periódico com link de confirmação; sem confirmação dentro do prazo, os acessos
   são entregues às pessoas definidas com o relatório do património em anexo (Administração → Definições).
   Requer `RESEND_API_KEY`, `ALERTS_FROM` e `APP_URL`.

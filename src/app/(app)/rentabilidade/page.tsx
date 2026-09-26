@@ -6,15 +6,23 @@ import { getPerformance, AssetPerf } from "@/lib/performance";
 import { ASSET_TYPE_LABEL, fmtDate, fmtEur, fmtPct } from "@/lib/format";
 import { Card, Money, PageHeader, StatTile } from "@/components/ui";
 import { Delta } from "@/components/LiveBadge";
-import { getDailyPnl } from "@/lib/daily-pnl";
+import { getDailyPnl, type Grouping } from "@/lib/daily-pnl";
 import { CumulativePnlChart, DailyPnlBars } from "@/components/charts/PnlCharts";
 
 const PERIODS = [
+  { days: 7, label: "7 dias" },
   { days: 30, label: "30 dias" },
   { days: 90, label: "90 dias" },
   { days: 180, label: "6 meses" },
   { days: 365, label: "1 ano" },
   { days: 3650, label: "Tudo" },
+];
+
+const GROUPS: { key: Grouping; label: string }[] = [
+  { key: "day", label: "Dia" },
+  { key: "week", label: "Semana" },
+  { key: "month", label: "Mês" },
+  { key: "year", label: "Ano" },
 ];
 
 function Signed({ value, digits = 0 }: { value: number | null; digits?: number }) {
@@ -65,13 +73,27 @@ function PerfTable({ rows, combined }: { rows: AssetPerf[]; combined: AssetPerf 
   );
 }
 
-export default async function PerformancePage({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
+export default async function PerformancePage({ searchParams }: { searchParams: Promise<{ dias?: string; agr?: string; cot?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const days = PERIODS.some((p) => String(p.days) === sp.dias) ? Number(sp.dias) : 90;
-  logView(user, "Rentabilidade", { dias: days });
+  const group = (GROUPS.some((g) => g.key === sp.agr) ? sp.agr : "day") as Grouping;
+  const onlyQuoted = sp.cot === "1";
+  const link = (over: { dias?: number; agr?: Grouping; cot?: boolean }) => {
+    const p = new URLSearchParams();
+    const d = over.dias ?? days;
+    const g = over.agr ?? group;
+    const c = over.cot ?? onlyQuoted;
+    if (d !== 90) p.set("dias", String(d));
+    if (g !== "day") p.set("agr", g);
+    if (c) p.set("cot", "1");
+    const q = p.toString();
+    return q ? `/rentabilidade?${q}` : "/rentabilidade";
+  };
+  logView(user, "Rentabilidade", { dias: days, agrupamento: group, soComCotacao: onlyQuoted });
   const scope = await getScope(user);
-  const [{ rows, combined }, pnl] = await Promise.all([getPerformance(scope.assetIds), getDailyPnl({ assetIds: scope.assetIds, days })]);
+  const [{ rows, combined }, pnl] = await Promise.all([getPerformance(scope.assetIds), getDailyPnl({ assetIds: scope.assetIds, days, group, onlyQuoted })]);
+  const groupLabel = { day: "dia", week: "semana", month: "mês", year: "ano" }[group];
   const since = combined?.periods.at(-1);
   const year = combined?.periods[0];
   return (
@@ -89,22 +111,33 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         title="Ganhos e perdas das carteiras em direto"
         className="mt-4"
         action={
-          <div className="flex flex-wrap gap-1">
-            {PERIODS.map((p) => (
-              <Link key={p.days} href={`/rentabilidade?dias=${p.days}`} scroll={false} className={`btn btn-sm ${p.days === days ? "btn-primary" : ""}`}>{p.label}</Link>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-1">
+              {PERIODS.map((p) => (
+                <Link key={p.days} href={link({ dias: p.days })} scroll={false} className={`btn btn-sm ${p.days === days ? "btn-primary" : ""}`}>{p.label}</Link>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="text-xs text-ink-3">agrupar:</span>
+              {GROUPS.map((g) => (
+                <Link key={g.key} href={link({ agr: g.key })} scroll={false} className={`btn btn-sm ${g.key === group ? "btn-primary" : ""}`}>{g.label}</Link>
+              ))}
+            </div>
+            <Link href={link({ cot: !onlyQuoted })} scroll={false} className={`btn btn-sm ${onlyQuoted ? "btn-primary" : ""}`} title="Mostrar apenas as carteiras com cotação do Yahoo, como no cartão da visão geral">
+              {onlyQuoted ? "✓ " : ""}só com cotação
+            </Link>
           </div>
         }
       >
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatTile label="Hoje (em direto)" value={pnl.todayLive !== null ? `${pnl.todayLive >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl.todayLive), 0)}` : "—"} hint={pnl.quotesAt ? `cotações de ${pnl.quotesAt.toLocaleTimeString("pt-PT", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit" })}` : "sem cotações"} />
           <StatTile label="Acumulado no período" value={`${pnl.totalPnl >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl.totalPnl), 0)}`} hint={pnl.from ? `desde ${fmtDate(pnl.from)}` : "sem registos"} />
-          <StatTile label="Melhor dia" value={pnl.bestDay ? `+${fmtEur(pnl.bestDay.pnl, 0)}` : "—"} hint={pnl.bestDay ? fmtDate(pnl.bestDay.date) : undefined} />
-          <StatTile label="Pior dia" value={pnl.worstDay ? `-${fmtEur(Math.abs(pnl.worstDay.pnl), 0)}` : "—"} hint={pnl.worstDay ? fmtDate(pnl.worstDay.date) : undefined} />
+          <StatTile label={`Melhor ${groupLabel}`} value={pnl.bestDay ? `${pnl.bestDay.pnl >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl.bestDay.pnl), 0)}` : "—"} hint={pnl.bestDay ? (group === "day" ? fmtDate(pnl.bestDay.date) : pnl.bestDay.label) : undefined} />
+          <StatTile label={`Pior ${groupLabel}`} value={pnl.worstDay ? `${pnl.worstDay.pnl >= 0 ? "+" : "-"}${fmtEur(Math.abs(pnl.worstDay.pnl), 0)}` : "—"} hint={pnl.worstDay ? (group === "day" ? fmtDate(pnl.worstDay.date) : pnl.worstDay.label) : undefined} />
         </div>
         <div className="mt-4 grid gap-4 xl:grid-cols-2">
           <div>
-            <h3 className="mb-1 text-sm font-medium">Variação diária</h3>
+            <h3 className="mb-1 text-sm font-medium">Variação por {groupLabel}</h3>
             <DailyPnlBars data={pnl.points} />
           </div>
           <div>
@@ -140,7 +173,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
           </div>
         )}
         <p className="mt-3 text-xs text-ink-3">
-          Cada barra é a diferença de valor entre dois registos consecutivos das carteiras (DEGIRO, XTB, carteiras de ações e cripto), descontando depósitos e levantamentos desse dia; a última barra, tracejada, é o dia de hoje às cotações do momento.
+          Cada barra é a variação de valor {group === "day" ? "entre dois registos consecutivos" : `no período (${groupLabel})`} das carteiras {onlyQuoted ? "com cotação" : "(DEGIRO, XTB, carteiras de ações e cripto)"}, descontando depósitos e levantamentos; a última barra, tracejada, inclui o valor de hoje às cotações do momento.
           A coluna <b>em direto</b> e o total correspondem ao cartão “Carteiras em direto” da visão geral, que lista apenas as carteiras com cotação; as carteiras sem cotação entram nos gráficos e no total do último registo pelo valor registado.
           {pnl.points.length < 5 ? " Para ter uma barra por dia, ative o registo diário do valor em Administração → Definições." : ""}
           {pnl.liveError ? ` Cotações: ${pnl.liveError}` : ""}

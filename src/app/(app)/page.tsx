@@ -30,6 +30,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const liveHint = liveRows.length ? `Cotações do Yahoo Finance para ${liveRows.map((r) => r.asset.name).join(", ")}; os restantes ativos mantêm o último valor registado.` : undefined;
   const liveSecondary = liveRows.length ? { label: "em direto", delta: liveDelta, title: liveHint } : null;
   const liveDay = liveRows.reduce((s, r) => s + r.v.dayChangeEur, 0);
+  const quotesAt = liveRows.map((r) => r.v.quotesAt).filter((d): d is Date => !!d).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+  const quotesAtLabel = quotesAt ? quotesAt.toLocaleString("pt-PT", { timeZone: "Europe/Lisbon", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null;
   const months = series.months;
   const prev = months.length >= 2 ? months[months.length - 2].total : null;
   const delta = prev && Math.abs((total - prev) / prev) <= 1 ? (total - prev) / prev : null;
@@ -84,7 +86,11 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </div>
       )}
       {liveRows.length > 0 && (
-        <Card title="Carteiras em direto (cotações Yahoo Finance)" className="mt-4" action={<span className="flex flex-wrap items-center gap-2 text-xs text-ink-3">património em direto ≈ {fmtEur(total + liveDelta, 0)}<Link href="/rentabilidade" className="btn btn-sm">Ganhos diários</Link></span>}>
+        <Card
+          title={<span className="flex flex-wrap items-baseline gap-x-2">Carteiras em direto (cotações Yahoo Finance){quotesAtLabel && <span className="text-xs font-normal text-ink-3">cotações de {quotesAtLabel}</span>}</span>}
+          className="mt-4"
+          action={<span className="flex flex-wrap items-center gap-2 text-xs text-ink-3">património em direto ≈ {fmtEur(total + liveDelta, 0)}<Link href="/rentabilidade" className="btn btn-sm">Ganhos diários</Link></span>}
+        >
           <div className="overflow-x-auto">
             <table className="table">
               <thead><tr><th>Carteira</th><th className="text-right">Último registo</th><th className="text-right">Em direto</th><th className="text-right">Variação</th><th className="text-right">Hoje</th><th className="text-right">Ganho/perda</th></tr></thead>

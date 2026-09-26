@@ -5,13 +5,16 @@ import { getLiveValuations } from "./quotes";
 /** Asset types whose value is quoted live (Yahoo). */
 export const LIVE_TYPES = ["BROKERAGE", "STOCK_PORTFOLIO", "CRYPTO"] as const;
 
+export type Grouping = "day" | "week" | "month" | "year";
+
 export type DailyPoint = {
-  date: string; // YYYY-MM-DD
-  value: number; // total of the portfolios on that date
-  flow: number; // deposits (+) and withdrawals (−) on that date
+  date: string; // YYYY-MM-DD (the last day of the bucket)
+  label: string; // how the point is shown on the axis
+  value: number; // total of the portfolios at the end of the bucket
+  flow: number; // deposits (+) and withdrawals (−) in the bucket
   pnl: number; // value change with the flows taken out
   cumulative: number; // running sum of pnl since the first point shown
-  live?: boolean; // the last point, valued at the quotes of the moment
+  live?: boolean; // includes today's value at the quotes of the moment
 };
 
 export type AssetPnl = {
@@ -32,6 +35,8 @@ export type DailyPnl = {
   points: DailyPoint[];
   assets: AssetPnl[];
   days: number;
+  group: Grouping;
+  onlyQuoted: boolean;
   from: string | null;
   totalPnl: number;
   bestDay: DailyPoint | null;
@@ -45,13 +50,63 @@ export type DailyPnl = {
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const round = (n: number) => Math.round(n * 100) / 100;
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** ISO week (Monday to Sunday) of a date, as "2026-W39". */
+function isoWeek(d: Date) {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = (t.getUTCDay() + 6) % 7; // Monday = 0
+  t.setUTCDate(t.getUTCDate() - day + 3); // the Thursday of that week decides the year
+  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const week = 1 + Math.round(((t.getTime() - firstThursday.getTime()) / 86400e3 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function bucketOf(dateIso: string, group: Grouping): { key: string; label: string } {
+  const d = new Date(dateIso);
+  if (group === "week") {
+    const key = isoWeek(d);
+    return { key, label: `sem. ${key.slice(6)}/${key.slice(2, 4)}` };
+  }
+  if (group === "month") return { key: dateIso.slice(0, 7), label: `${MONTHS[d.getUTCMonth()]} ${dateIso.slice(2, 4)}` };
+  if (group === "year") return { key: dateIso.slice(0, 4), label: dateIso.slice(0, 4) };
+  return { key: dateIso, label: `${dateIso.slice(8, 10)}/${dateIso.slice(5, 7)}` };
+}
+
+/** Sums the daily points into weeks, months or years (value = the last one of each bucket). */
+function groupPoints(points: DailyPoint[], group: Grouping): DailyPoint[] {
+  if (group === "day") return points;
+  const out: DailyPoint[] = [];
+  let cumulative = 0;
+  for (const p of points) {
+    const { key, label } = bucketOf(p.date, group);
+    const last = out.at(-1);
+    if (last && bucketOf(last.date, group).key === key) {
+      last.date = p.date;
+      last.value = p.value;
+      last.flow = round(last.flow + p.flow);
+      last.pnl = round(last.pnl + p.pnl);
+      last.live = last.live || p.live;
+    } else {
+      out.push({ ...p, label });
+    }
+    void key;
+  }
+  for (const p of out) {
+    cumulative = round(cumulative + p.pnl);
+    p.cumulative = cumulative;
+  }
+  return out;
+}
 
 /**
  * Daily and cumulative gains of the live portfolios: the change in value between consecutive
  * records, with deposits and withdrawals taken out, plus today's value at the quotes of the moment.
  */
-export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; assetId?: string } = {}): Promise<DailyPnl> {
+export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; assetId?: string; group?: Grouping; onlyQuoted?: boolean } = {}): Promise<DailyPnl> {
   const days = opts.days ?? 90;
+  const group: Grouping = opts.group ?? "day";
+  const onlyQuoted = !!opts.onlyQuoted;
   const assets = await prisma.asset.findMany({
     where: {
       active: true,
@@ -62,9 +117,12 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
     orderBy: { sortOrder: "asc" },
     include: { snapshots: { orderBy: { date: "asc" }, select: { date: true, value: true } } },
   });
-  const withData = assets.filter((a) => a.snapshots.length);
+  const withSnapshots = assets.filter((a) => a.snapshots.length);
+  const liveAll = await getLiveValuations(withSnapshots.map((a) => a.id), { resolve: false });
+  // "só as carteiras com cotação" keeps the same set as the live card of the overview
+  const withData = onlyQuoted ? withSnapshots.filter((a) => (liveAll.get(a.id)?.quoted ?? 0) > 0) : withSnapshots;
   if (!withData.length) {
-    return { points: [], assets: [], days, from: null, totalPnl: 0, bestDay: null, worstDay: null, positiveDays: 0, negativeDays: 0, todayLive: null, quotesAt: null, liveError: null };
+    return { points: [], assets: [], days, group, onlyQuoted, from: null, totalPnl: 0, bestDay: null, worstDay: null, positiveDays: 0, negativeDays: 0, todayLive: null, quotesAt: null, liveError: null };
   }
 
   const today = new Date(iso(new Date()));
@@ -81,7 +139,7 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   const flowsByAsset = new Map<string, Flow[]>();
   for (const a of withData) flowsByAsset.set(a.id, await getAssetFlows(a));
 
-  const live = await getLiveValuations(withData.map((a) => a.id), { resolve: false });
+  const live = liveAll;
   const liveTotal = withData.reduce((s, a) => {
     const l = live.get(a.id);
     return s + (l && l.quoted > 0 ? l.liveTotal : (valueAt(a.snapshots, today) ?? 0));
@@ -112,7 +170,8 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
     const cur = raw[i];
     const pnl = round(cur.value - prev.value - cur.flow);
     cumulative = round(cumulative + pnl);
-    points.push({ date: iso(cur.date), value: round(cur.value), flow: round(cur.flow), pnl, cumulative, live: cur.live });
+    const d = iso(cur.date);
+    points.push({ date: d, label: bucketOf(d, "day").label, value: round(cur.value), flow: round(cur.flow), pnl, cumulative, live: cur.live });
   }
 
   const rows: AssetPnl[] = withData.map((a) => {
@@ -139,17 +198,20 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   });
 
   // the live point is a partial day (and may cover several days when the last record is old): out of the day records
-  const withPnl = points.filter((p) => p.pnl !== 0 && !p.live);
+  const grouped = groupPoints(points, group);
+  const withPnl = grouped.filter((p) => p.pnl !== 0 && !p.live);
   return {
-    points,
+    points: grouped,
     assets: rows,
     days,
+    group,
+    onlyQuoted,
     from: points[0]?.date ?? null,
-    totalPnl: points.at(-1)?.cumulative ?? 0,
+    totalPnl: grouped.at(-1)?.cumulative ?? 0,
     bestDay: withPnl.length ? withPnl.reduce((b, p) => (p.pnl > b.pnl ? p : b)) : null,
     worstDay: withPnl.length ? withPnl.reduce((b, p) => (p.pnl < b.pnl ? p : b)) : null,
-    positiveDays: points.filter((p) => p.pnl > 0 && !p.live).length,
-    negativeDays: points.filter((p) => p.pnl < 0 && !p.live).length,
+    positiveDays: grouped.filter((p) => p.pnl > 0 && !p.live).length,
+    negativeDays: grouped.filter((p) => p.pnl < 0 && !p.live).length,
     todayLive: anyLive ? round(withData.reduce((s, a) => s + (live.get(a.id)?.dayChangeEur ?? 0), 0)) : null,
     quotesAt,
     liveError,
