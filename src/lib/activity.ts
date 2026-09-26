@@ -40,6 +40,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "trade.delete": "Compra/venda apagada",
   "portfolio.refresh": "Carteira de ações atualizada",
   "portfolio.history": "Histórico da carteira reconstruído",
+  "quotes.refresh": "Cotações e valores atualizados",
   "ai.analysis": "Análise de IA executada",
   "ai.delete": "Análise de IA apagada",
   "allocation.target": "Alocação-alvo definida",

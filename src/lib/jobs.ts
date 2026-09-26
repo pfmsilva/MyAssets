@@ -27,8 +27,8 @@ export async function purgeActivity(days: number) {
 }
 
 /** Recomputes every manual stock portfolio from its trades and current quotes. Runs daily and never throws. */
-export async function syncStockPortfolios() {
-  const assets = await prisma.asset.findMany({ where: { active: true, type: "STOCK_PORTFOLIO" }, select: { id: true, name: true } });
+export async function syncStockPortfolios(only?: string[]) {
+  const assets = await prisma.asset.findMany({ where: { active: true, type: "STOCK_PORTFOLIO", ...(only ? { id: { in: only } } : {}) }, select: { id: true, name: true } });
   let synced = 0;
   const errors: string[] = [];
   for (const a of assets) {
@@ -44,9 +44,12 @@ export async function syncStockPortfolios() {
 }
 
 /** Saves today's live value of portfolios with quotes as a snapshot (source DERIVED), keeping imports untouched. */
-export async function saveDailySnapshots() {
+export async function saveDailySnapshots(only?: string[]) {
   const values = await getCurrentValues();
-  const ids = values.filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO").map((a) => a.id);
+  const ids = values
+    .filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO")
+    .map((a) => a.id)
+    .filter((id) => !only || only.includes(id));
   const live = await getLiveValuations(ids, { resolve: true });
   const today = new Date(new Date().toISOString().slice(0, 10));
   let saved = 0;

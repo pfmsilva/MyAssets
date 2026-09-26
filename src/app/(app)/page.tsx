@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/access";
+import { hasRole, requireUser } from "@/lib/access";
 import { logView } from "@/lib/activity";
 import { getScope } from "@/lib/scope";
 import { byMember, getCurrentValues, getNetWorthSeries, groupBy } from "@/lib/analytics";
@@ -11,6 +11,7 @@ import { TYPE_COLORS } from "@/components/charts/theme";
 import { getLiveValuationsOnce } from "@/lib/quotes";
 import { getBudgetOverview } from "@/lib/budget";
 import { Delta } from "@/components/LiveBadge";
+import { RefreshAll } from "@/components/RefreshAll";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +90,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <Card
           title={<span className="flex flex-wrap items-baseline gap-x-2">Carteiras em direto (cotações Yahoo Finance){quotesAtLabel && <span className="text-xs font-normal text-ink-3">cotações de {quotesAtLabel}</span>}</span>}
           className="mt-4"
-          action={<span className="flex flex-wrap items-center gap-2 text-xs text-ink-3">património em direto ≈ {fmtEur(total + liveDelta, 0)}<Link href="/rentabilidade" className="btn btn-sm">Ganhos diários</Link></span>}
+          action={<span className="flex flex-wrap items-center gap-2 text-xs text-ink-3">património em direto ≈ {fmtEur(total + liveDelta, 0)}{hasRole(user.role, "EDITOR") && <RefreshAll />}<Link href="/rentabilidade" className="btn btn-sm">Ganhos diários</Link></span>}
         >
           <div className="overflow-x-auto">
             <table className="table">

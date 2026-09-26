@@ -32,13 +32,15 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   são entregues às pessoas definidas com o relatório do património em anexo (Administração → Definições).
   Requer `RESEND_API_KEY`, `ALERTS_FROM` e `APP_URL`.
 - **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.
+- **Atualizar tudo**: um botão na visão geral (e na página de cada carteira) que refresca as cotações, recalcula as
+  carteiras de ações e regista o valor do dia.
 - **Cotações em direto** (Yahoo Finance, sem chave): valor atual das carteiras DEGIRO/XTB, variação do dia e
   ganho face ao último registo; mapeamento ISIN/ticker → símbolo Yahoo automático e editável em
   Administração → Cotações, com links para o Yahoo. `QUOTES_MOCK="true"` simula cotações em desenvolvimento.
 - **Versão**: versão, commit e data de build visíveis na barra lateral, no login e em Administração → histórico (`CHANGELOG.md`).
 - **Relatório PDF** (administrador): resumo de todos os ativos da família, distribuição, património por
   membro, evolução, despesas e composição das carteiras (`/api/relatorio`).
-- **Importação de ficheiros**: extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx),
+- **Importação de ficheiros** (formato reconhecido automaticamente pelo conteúdo): extrato BPI (.xlsx), extrato Revolut (.csv), movimentos Banco CTT (.xlsx),
   carteira DEGIRO (.xls), transações DEGIRO (.csv), ativos Binance (.csv), relatório XTB (.xlsx),
   extrato mensal Optimize (.pdf).
   As transações da DEGIRO (uma linha por ordem executada, com ISIN, quantidade e valor em EUR) entram numa

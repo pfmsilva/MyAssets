@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { prisma } from "./prisma";
 import { loadRules, matchCategory } from "./categorize";
 import { ImporterKey, parseFile } from "./importers";
+import { detectImporter } from "./importers/detect";
 import { ParsedImport, ParsedTransaction } from "./importers/types";
 import { syncPortfolioSnapshot } from "./stock-portfolio";
 import { ASSET_TYPE_LABEL } from "./format";
@@ -9,6 +10,8 @@ import { ASSET_TYPE_LABEL } from "./format";
 export type ImportResult = {
   batchId: string;
   source: string;
+  importer: ImporterKey;
+  detected: boolean;
   rowsTotal: number;
   rowsNew: number;
   rowsExisting: number;
@@ -40,7 +43,7 @@ function endOfMonth(iso: string) {
 
 export async function runImport(opts: {
   assetId: string;
-  importer: ImporterKey;
+  importer: ImporterKey | "auto"; // "auto": recognise the format from the file itself
   fileName: string;
   buffer: ArrayBuffer;
   snapshotDate?: string; // override for the snapshot date (DEGIRO, or the date of `currentBalance`)
@@ -49,7 +52,14 @@ export async function runImport(opts: {
   userId?: string;
 }): Promise<ImportResult> {
   const asset = await prisma.asset.findUniqueOrThrow({ where: { id: opts.assetId } });
-  const parsed: ParsedImport = await parseFile(opts.importer, opts.buffer);
+  let importer = opts.importer;
+  const detected = importer === "auto";
+  if (importer === "auto") {
+    const d = detectImporter(opts.fileName, opts.buffer);
+    if (!d.importer) throw new Error(`Não foi possível reconhecer o formato do ficheiro (${d.reason}). Escolha o formato à mão.`);
+    importer = d.importer;
+  }
+  const parsed: ParsedImport = await parseFile(importer, opts.buffer);
   const warnings = [...parsed.warnings];
   const today = new Date().toISOString().slice(0, 10);
   const balanceDate = opts.snapshotDate || parsed.balanceDate || today;
@@ -218,6 +228,8 @@ export async function runImport(opts: {
   return {
     batchId: batch.id,
     source: parsed.source,
+    importer,
+    detected,
     rowsTotal: parsed.transactions.length,
     rowsNew,
     rowsExisting: parsed.transactions.length - rowsNew,

@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.18.0 — 2026-09-26
+- Importação sem escolher o formato: o ficheiro é reconhecido pelo conteúdo (BPI, Revolut, Banco CTT, carteira e transações DEGIRO, Binance, XTB e Optimize) e só é preciso escolher à mão se não for reconhecido. O resultado diz qual o formato detetado.
+- Novo botão "Atualizar tudo" na visão geral e na página de cada carteira: refresca as cotações, recalcula as carteiras de ações e regista o valor do dia, substituindo os vários botões separados.
+
 ## 1.17.1 — 2026-09-26
 - Arrumação interna sem alterações visíveis: as séries do património passam a ser construídas num único módulo (`asset-series`), partilhado pela evolução, pela rentabilidade e pelos ganhos diários.
 - As cotações em direto são calculadas uma só vez por pedido, em vez de uma vez por secção da página.

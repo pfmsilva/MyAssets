@@ -24,7 +24,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
   const importers = Object.entries(IMPORTERS).map(([key, v]) => ({ key, label: v.label, accept: v.accept, needsBalance: v.needsBalance, needsDate: "needsDate" in v ? v.needsDate : false, portfolio: isPortfolioImporter(key) }));
   return (
     <>
-      <PageHeader title="Importar ficheiros" subtitle="Extratos BPI (.xlsx), Revolut (.csv), Banco CTT (.xlsx), carteira DEGIRO (.xls), transações DEGIRO (.csv), ativos Binance (.csv), relatório XTB (.xlsx) e extrato mensal Optimize (.pdf). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
+      <PageHeader title="Importar ficheiros" subtitle="Escolha o ativo e largue o ficheiro: o formato é reconhecido automaticamente (BPI, Revolut, Banco CTT, DEGIRO carteira e transações, Binance, XTB e Optimize). Movimentos repetidos são ignorados; o histórico nunca é apagado." />
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3"><ImportForm assets={assets.map((a) => ({ id: a.id, name: a.name, importer: a.importer, type: a.type }))} importers={importers} initialAsset={asset} /></Card>
         <Card title="Como obter os ficheiros" className="lg:col-span-2 text-sm text-ink-2">

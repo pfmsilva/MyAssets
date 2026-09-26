@@ -10,27 +10,30 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
   const [state, action, pending] = useActionState<ImportState, FormData>(importFile, {});
   const [assetId, setAssetId] = useState(initialAsset ?? assets[0]?.id ?? "");
   const asset = assets.find((a) => a.id === assetId);
-  const [importer, setImporter] = useState(asset?.importer ?? importers[0]?.key ?? "");
+  const [importer, setImporter] = useState("auto");
   const imp = importers.find((i) => i.key === importer);
+  const auto = importer === "auto";
+  const accept = auto ? ".xlsx,.xls,.csv,.pdf" : imp?.accept;
   const r = state.result;
   return (
     <form action={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           <label htmlFor="assetId">Ativo / conta</label>
-          <select id="assetId" name="assetId" value={assetId} onChange={(e) => { setAssetId(e.target.value); const a = assets.find((x) => x.id === e.target.value); if (a?.importer) setImporter(a.importer); }}>
+          <select id="assetId" name="assetId" value={assetId} onChange={(e) => setAssetId(e.target.value)}>
             {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="importer">Formato do ficheiro</label>
           <select id="importer" name="importer" value={importer} onChange={(e) => setImporter(e.target.value)}>
+            <option value="auto">Detetar automaticamente</option>
             {importers.map((i) => <option key={i.key} value={i.key}>{i.label}</option>)}
           </select>
         </div>
         <div className="flex flex-col gap-1 sm:col-span-2">
           <label htmlFor="file">Ficheiro</label>
-          <input id="file" name="file" type="file" accept={imp?.accept} required className="file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1 file:text-xs" />
+          <input id="file" name="file" type="file" accept={accept} required className="file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1 file:text-xs" />
         </div>
         {imp?.needsDate && (
           <div className="flex flex-col gap-1">
@@ -38,10 +41,25 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
             <input id="snapshotDate" name="snapshotDate" type="date" defaultValue={todayIso()} />
           </div>
         )}
-        {imp?.portfolio && asset && asset.type !== "STOCK_PORTFOLIO" && (
+        {auto && (
+          <details className="sm:col-span-2">
+            <summary className="cursor-pointer text-xs text-ink-3">Opções (só para alguns ficheiros)</summary>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="snapshotDate">Data do retrato (carteira DEGIRO, ativos Binance)</label>
+                <input id="snapshotDate" name="snapshotDate" type="date" defaultValue={todayIso()} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="currentBalance">Saldo atual da conta (extrato Banco CTT)</label>
+                <input id="currentBalance" name="currentBalance" type="number" step="0.01" inputMode="decimal" placeholder="ex.: 1250,40" />
+              </div>
+            </div>
+          </details>
+        )}
+        {(auto || imp?.portfolio) && asset && asset.type !== "STOCK_PORTFOLIO" && (
           <label className="flex items-start gap-2 text-sm font-normal text-ink sm:col-span-2">
-            <input type="checkbox" name="convertToPortfolio" defaultChecked className="mt-0.5" />
-            <span>Converter <b>{asset.name}</b> (atualmente &laquo;{ASSET_TYPE_LABEL[asset.type] ?? asset.type}&raquo;) em <b>carteira de ações (manual)</b>. O histórico de valores é mantido e, a partir daqui, o valor passa a ser calculado pelas compras/vendas com as cotações do Yahoo.</span>
+            <input type="checkbox" name="convertToPortfolio" defaultChecked={!auto} className="mt-0.5" />
+            <span>Se o ficheiro tiver compras e vendas, converter <b>{asset.name}</b> (atualmente &laquo;{ASSET_TYPE_LABEL[asset.type] ?? asset.type}&raquo;) em <b>carteira de ações (manual)</b>. O histórico de valores é mantido e, a partir daqui, o valor passa a ser calculado pelas compras/vendas com as cotações do Yahoo.</span>
           </label>
         )}
         {imp?.needsBalance && (
@@ -62,7 +80,7 @@ export function ImportForm({ assets, importers, initialAsset }: { assets: AssetO
       {state.error && <p className="rounded-md bg-bad/10 px-3 py-2 text-sm text-bad">{state.error}</p>}
       {r && (
         <div className="rounded-md bg-good/10 px-3 py-2 text-sm">
-          <p className="font-medium text-good">Importação concluída ({r.source.toUpperCase()}).</p>
+          <p className="font-medium text-good">Importação concluída ({r.source.toUpperCase()}{r.detected ? ", formato detetado automaticamente" : ""}).</p>
           <ul className="mt-1 list-inside list-disc text-ink-2">
             {r.rowsTotal > 0 && <li>{r.rowsNew} movimentos novos, {r.rowsExisting} já existentes (ignorados).</li>}
             {r.rowsTotal > 0 && <li>{r.categorized} categorizados automaticamente pelas regras.</li>}

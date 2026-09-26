@@ -173,7 +173,7 @@ export default async function AssetPage({ params, searchParams }: { params: Prom
                   })}
                 </tbody>
               </table>
-              {live && <div className="mt-2"><QuoteRefresh assetId={asset.id} quotesAt={live.quotesAt?.toISOString() ?? null} quoted={live.quoted} quotable={live.quotable} error={live.error} /></div>}
+              {live && <div className="mt-2"><QuoteRefresh assetId={asset.id} quotesAt={live.quotesAt?.toISOString() ?? null} quoted={live.quoted} quotable={live.quotable} error={live.error} editable={editable} /></div>}
             </div>
           </div>
         </Card>
