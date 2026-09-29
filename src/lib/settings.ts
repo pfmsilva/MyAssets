@@ -20,6 +20,8 @@ export type Settings = {
   allocationBandPp: number; // tolerance around each target, in percentage points
   aiEnabled: boolean; // allow sending a portfolio summary to the Claude API
   aiAnonymize: boolean; // replace family member names before sending
+  dailySummary: "off" | "admins" | "all"; // end-of-day e-mail with the last 7 days of the portfolios
+  dailySummaryWeekends: boolean; // also on Saturdays and Sundays
 };
 
 export const DEFAULTS: Settings = {
@@ -41,6 +43,8 @@ export const DEFAULTS: Settings = {
   allocationBandPp: 5,
   aiEnabled: false,
   aiAnonymize: true,
+  dailySummary: "off",
+  dailySummaryWeekends: false,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -67,6 +71,8 @@ export async function getSettings(): Promise<Settings> {
     allocationBandPp: Number.isFinite(num("allocationBandPp")) && num("allocationBandPp") >= 0 ? num("allocationBandPp") : DEFAULTS.allocationBandPp,
     aiEnabled: bool("aiEnabled"),
     aiAnonymize: bool("aiAnonymize"),
+    dailySummary: (["off", "admins", "all"].includes(map.get("dailySummary") ?? "") ? map.get("dailySummary") : DEFAULTS.dailySummary) as Settings["dailySummary"],
+    dailySummaryWeekends: bool("dailySummaryWeekends"),
   };
 }
 

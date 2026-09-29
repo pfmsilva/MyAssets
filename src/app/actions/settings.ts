@@ -7,6 +7,7 @@ import { saveSettings, getSettings, alertRecipients } from "@/lib/settings";
 import { emailLayout, sendEmail } from "@/lib/email";
 import { purgeActivity, runDailyJobs, JobReport } from "@/lib/jobs";
 import { prisma } from "@/lib/prisma";
+import { runDailySummary } from "@/lib/daily-summary";
 
 export type SettingsState = { ok?: boolean; error?: string };
 
@@ -32,6 +33,8 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         polLoginCounts: z.boolean(),
         aiEnabled: z.boolean(),
         aiAnonymize: z.boolean(),
+        dailySummary: z.enum(["off", "admins", "all"]),
+        dailySummaryWeekends: z.boolean(),
       })
       .parse({
         activityRetentionDays: fd.get("activityRetentionDays") || 0,
@@ -51,6 +54,8 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         polLoginCounts: fd.get("polLoginCounts") === "on",
         aiEnabled: fd.get("aiEnabled") === "on",
         aiAnonymize: fd.get("aiAnonymize") === "on",
+        dailySummary: fd.get("dailySummary") ?? "off",
+        dailySummaryWeekends: fd.get("dailySummaryWeekends") === "on",
       });
     await saveSettings(data);
     await logActivity(me, "settings.update", { details: data });
@@ -78,6 +83,15 @@ export async function runJobsNow(dryRun: boolean): Promise<JobReport> {
   await logActivity(me, "jobs.run", { details: { dryRun, steps: report.steps } });
   revalidatePath("/", "layout");
   return report;
+}
+
+/** Sends today's end-of-day summary to the administrator who asks, as a preview. */
+export async function sendSummaryPreview(): Promise<{ ok: boolean; message: string }> {
+  const me = await assertRole("ADMIN");
+  const r = await runDailySummary({ force: true, onlyUserId: me.id });
+  await logActivity(me, "summary.test", { details: { sent: r.sent, skipped: r.skipped, errors: r.errors } });
+  if (r.sent) return { ok: true, message: `Resumo enviado para ${me.email}.` };
+  return { ok: false, message: r.errors[0] ?? r.skipped[0] ?? "Nada enviado." };
 }
 
 export async function purgeActivityNow(): Promise<number> {

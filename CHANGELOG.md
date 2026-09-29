@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.21.0 — 2026-09-29
+- Novo resumo diário por e-mail no fim do dia (cerca das 22h30 de Lisboa, depois do fecho dos mercados americanos): variação por dia e ganho acumulado dos últimos 7 dias das carteiras com cotação, em gráficos de barras, com a tabela dia a dia, o valor em direto e o ganho de hoje de cada carteira.
+- Cada utilizador recebe só as carteiras que pode ver na aplicação. Em Administração → Definições escolhe-se enviar a ninguém, só aos administradores ou a todos, e se também ao fim de semana; o botão "Enviar-me o resumo de hoje" mostra como fica.
+- Os gráficos são feitos com tabelas HTML, para aparecerem no Gmail, Outlook e telemóvel sem depender de imagens; cada utilizador recebe no máximo um resumo por dia.
+
 ## 1.20.1 — 2026-09-29
 - Ganhos e perdas: a barra de hoje passa a ser exatamente a variação do dia das cotações (igual à coluna "Hoje" e ao indicador). Antes comparava o valor em direto com o último registo guardado, que podia ser o fecho de dois dias antes ou um valor tirado a meio do dia; essa diferença passa para a barra de ontem.
 - O valor diário gravado pela tarefa das 07:00 UTC (antes da abertura dos mercados) passa a ficar com a data de ontem, porque corresponde ao fecho de ontem; um valor gravado durante o dia com "Atualizar tudo" é substituído pelo fecho na manhã seguinte.

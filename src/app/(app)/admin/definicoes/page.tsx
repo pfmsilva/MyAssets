@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { SettingsTools } from "@/components/SettingsTools";
+import { SummaryPreviewButton } from "@/components/SummaryPreviewButton";
+import type { SummaryReport } from "@/lib/daily-summary";
 import { ProofOfLifeTools } from "@/components/ProofOfLifeTools";
 import { getPolState } from "@/lib/proof-of-life";
 import { fmtDate } from "@/lib/format";
@@ -35,6 +37,10 @@ export default async function SettingsAdmin() {
   const last = await prisma.setting.findUnique({ where: { key: "lastJobReport" } });
   const report: JobReport | null = last ? (JSON.parse(last.value) as JobReport) : null;
   const cronOk = !!process.env.CRON_SECRET;
+  const lastSummaryRow = await prisma.setting.findUnique({ where: { key: "lastSummaryReport" } });
+  const lastSummary: SummaryReport | null = lastSummaryRow ? (JSON.parse(lastSummaryRow.value) as SummaryReport) : null;
+  const summaryWho = { off: "desligado", admins: "para os administradores", all: "para todos os utilizadores" }[s.dailySummary];
+  const summaryLine = `${summaryWho}${s.dailySummary !== "off" ? ` · ${s.dailySummaryWeekends ? "todos os dias" : "dias úteis"} às ~22h30` : ""}${lastSummary ? ` · último envio ${new Date(lastSummary.ranAt).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}: ${lastSummary.sent} e-mail(s)` : ""}`;
   const pol = await getPolState();
   const [activityCount, oldest] = await Promise.all([prisma.activityLog.count(), prisma.activityLog.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } })]);
   const alertCount = s.alertEmails.split(",").map((e) => e.trim()).filter(Boolean).length;
@@ -84,6 +90,23 @@ export default async function SettingsAdmin() {
                 <input id="alertMovePct" name="alertMovePct" type="number" min="0" step="any" defaultValue={s.alertMovePct} />
               </div>
               <label className="flex items-center gap-2 text-sm font-normal text-ink"><input type="checkbox" name="alertBudget" defaultChecked={s.alertBudget} /> Alertar categorias acima do orçamento (uma vez por mês)</label>
+            </Section>
+
+            <Section title="Resumo diário por e-mail" summary={summaryLine}>
+              <p className="text-sm text-ink-2 sm:col-span-2">No fim de cada dia (cerca das 22h30 de Lisboa, depois do fecho dos mercados americanos) cada utilizador recebe os gráficos da variação por dia e do ganho acumulado dos últimos 7 dias das carteiras com cotação — só das carteiras que pode ver na aplicação.</p>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="dailySummary">Enviar</label>
+                <select id="dailySummary" name="dailySummary" defaultValue={s.dailySummary}>
+                  <option value="off">Não enviar</option>
+                  <option value="admins">Só aos administradores</option>
+                  <option value="all">A todos os utilizadores</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm font-normal text-ink"><input type="checkbox" name="dailySummaryWeekends" defaultChecked={s.dailySummaryWeekends} /> Enviar também ao sábado e domingo</label>
+              <div className="sm:col-span-2"><SummaryPreviewButton /></div>
+              {lastSummary && (lastSummary.errors.length > 0 || lastSummary.skipped.length > 0) && (
+                <p className="text-xs text-ink-3 sm:col-span-2">Último envio: {[...lastSummary.errors, ...lastSummary.skipped].slice(0, 4).join(" · ")}</p>
+              )}
             </Section>
 
             <Section title="Backup e valor diário" summary={`${s.backupWeeklyEmail ? "backup semanal por e-mail" : "sem backup por e-mail"} · ${s.dailySnapshot ? "valor diário das carteiras ligado" : "valor diário desligado"}`}>

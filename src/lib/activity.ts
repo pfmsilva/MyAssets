@@ -51,6 +51,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "pol.run": "Prova de vida verificada",
   "pol.reset": "Ciclo de prova de vida reiniciado",
   "email.test": "E-mail de teste",
+  "summary.test": "Resumo diário de teste",
   "jobs.run": "Tarefas diárias executadas",
   "activity.purge": "Registo de atividade limpo",
   "export.excel": "Exportação Excel",

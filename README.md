@@ -34,6 +34,10 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
 - **Prova de vida**: e-mail periódico com link de confirmação; sem confirmação dentro do prazo, os acessos
   são entregues às pessoas definidas com o relatório do património em anexo (Administração → Definições).
   Requer `RESEND_API_KEY`, `ALERTS_FROM` e `APP_URL`.
+- **Resumo diário por e-mail** (Administração → Definições): no fim de cada dia útil (cerca das 22h30 de Lisboa,
+  Vercel Cron `/api/cron/evening`) cada utilizador recebe os gráficos da variação por dia e do ganho acumulado dos
+  últimos 7 dias das carteiras com cotação que pode ver, com a tabela dia a dia e o "hoje" por carteira. Os
+  gráficos são tabelas HTML, para aparecerem em qualquer cliente de e-mail.
 - **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.
 - **Atualizar tudo**: um botão na visão geral (e na página de cada carteira) que refresca as cotações, recalcula as
   carteiras de ações e regista o valor do dia.
