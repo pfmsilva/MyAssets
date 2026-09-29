@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.22.1 — 2026-09-29
+- Telegram: o token do bot é aceite mesmo quando colado no Vercel com espaços, aspas, quebras de linha, o prefixo "bot" ou a mensagem inteira do @BotFather.
+- Quando o Telegram recusa o token ("Unauthorized"), a mensagem passa a explicar como o voltar a copiar.
+
 ## 1.22.0 — 2026-09-29
 - Ligação ao Telegram: em "A minha conta" cada pessoa liga a sua conta (ou um grupo da família) ao bot do Pecúlio com um link válido 24 horas; "/sair" no Telegram ou "Desligar" na aplicação desfazem a ligação.
 - O resumo do fim do dia chega ao Telegram como uma imagem com os gráficos da variação por dia e do ganho acumulado dos últimos 7 dias, e o ganho de hoje por carteira na legenda.

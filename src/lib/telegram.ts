@@ -2,15 +2,25 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
 import { appUrl } from "./email";
 
+/**
+ * Token of the bot, tolerant of how it was pasted into Vercel: spaces, line breaks, quotes,
+ * a "bot" prefix or the whole @BotFather message around it.
+ */
+function botToken(): string | null {
+  const raw = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  if (!raw) return null;
+  return raw.match(/\d{5,}:[A-Za-z0-9_-]{30,}/)?.[0] ?? raw.replace(/^["']|["']$/g, "").replace(/^bot/i, "").trim();
+}
+
 /** Telegram Bot API (https://core.telegram.org/bots/api). Needs TELEGRAM_BOT_TOKEN. */
 export function telegramConfigured() {
-  return !!process.env.TELEGRAM_BOT_TOKEN;
+  return !!botToken();
 }
 
 type TgResult<T> = { ok: true; result: T } | { ok: false; error: string };
 
 async function call<T>(method: string, body?: Record<string, unknown> | FormData): Promise<TgResult<T>> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = botToken();
   if (!token) return { ok: false, error: "Telegram não configurado: defina TELEGRAM_BOT_TOKEN no Vercel." };
   try {
     // TELEGRAM_API_BASE only exists for tests against a local stand-in of the Bot API
@@ -19,6 +29,8 @@ async function call<T>(method: string, body?: Record<string, unknown> | FormData
       ...(body instanceof FormData ? { body } : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) }),
     });
     const data = (await res.json().catch(() => ({}))) as { ok?: boolean; result?: T; description?: string };
+    if (res.status === 401 || res.status === 404)
+      return { ok: false, error: "o Telegram não reconhece o TELEGRAM_BOT_TOKEN. Copie de novo o token do @BotFather (/mybots → o bot → API Token), só o texto do tipo 123456789:AAE…, guarde-o no Vercel e faça Redeploy." };
     if (!data.ok) return { ok: false, error: data.description ?? `erro ${res.status}` };
     return { ok: true, result: data.result as T };
   } catch (e) {
@@ -40,7 +52,7 @@ export async function botUsername(): Promise<string | null> {
 
 /** Secret Telegram sends back in every webhook call, derived from AUTH_SECRET. */
 export function webhookSecret() {
-  return createHash("sha256").update(`telegram|${process.env.AUTH_SECRET ?? ""}|${process.env.TELEGRAM_BOT_TOKEN ?? ""}`).digest("hex").slice(0, 48);
+  return createHash("sha256").update(`telegram|${process.env.AUTH_SECRET ?? ""}|${botToken() ?? ""}`).digest("hex").slice(0, 48);
 }
 
 export function webhookSecretOk(header: string | null) {
