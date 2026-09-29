@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.20.1 — 2026-09-29
+- Ganhos e perdas: a barra de hoje passa a ser exatamente a variação do dia das cotações (igual à coluna "Hoje" e ao indicador). Antes comparava o valor em direto com o último registo guardado, que podia ser o fecho de dois dias antes ou um valor tirado a meio do dia; essa diferença passa para a barra de ontem.
+- O valor diário gravado pela tarefa das 07:00 UTC (antes da abertura dos mercados) passa a ficar com a data de ontem, porque corresponde ao fecho de ontem; um valor gravado durante o dia com "Atualizar tudo" é substituído pelo fecho na manhã seguinte.
+
 ## 1.20.0 — 2026-09-26
 - Relatório PDF completo, com índice na primeira página e novas secções: valor em direto com a hora das cotações, investimentos em direto por carteira, rentabilidade (ganho, TWR e XIRR por carteira e global), ganhos e perdas (barras diárias dos últimos 30 dias e semanais dos últimos 6 meses), mais-valias realizadas (incluindo as carteiras de ações manuais, com execuções parciais agrupadas), despesas mês a mês, orçamento do mês e notas de metodologia.
 - A última análise de IA passa a fazer parte do relatório, numa página própria: resumo, observações, riscos e sugestões com a respetiva prioridade, perguntas a responder e o aviso de que não é aconselhamento financeiro.

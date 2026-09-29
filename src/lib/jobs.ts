@@ -27,13 +27,13 @@ export async function purgeActivity(days: number) {
 }
 
 /** Recomputes every manual stock portfolio from its trades and current quotes. Runs daily and never throws. */
-export async function syncStockPortfolios(only?: string[]) {
+export async function syncStockPortfolios(only?: string[], date?: Date) {
   const assets = await prisma.asset.findMany({ where: { active: true, type: "STOCK_PORTFOLIO", ...(only ? { id: { in: only } } : {}) }, select: { id: true, name: true } });
   let synced = 0;
   const errors: string[] = [];
   for (const a of assets) {
     try {
-      const r = await syncPortfolioSnapshot(a.id, { force: true });
+      const r = await syncPortfolioSnapshot(a.id, { force: true, date });
       if (r.skipped) errors.push(`${a.name}: ${r.skipped}`);
       else synced++;
     } catch (e) {
@@ -44,14 +44,14 @@ export async function syncStockPortfolios(only?: string[]) {
 }
 
 /** Saves today's live value of portfolios with quotes as a snapshot (source DERIVED), keeping imports untouched. */
-export async function saveDailySnapshots(only?: string[]) {
+export async function saveDailySnapshots(only?: string[], date?: Date) {
   const values = await getCurrentValues();
   const ids = values
     .filter((a) => a.type === "BROKERAGE" || a.type === "STOCK_PORTFOLIO" || a.type === "CRYPTO")
     .map((a) => a.id)
     .filter((id) => !only || only.includes(id));
   const live = await getLiveValuations(ids, { resolve: true });
-  const today = new Date(new Date().toISOString().slice(0, 10));
+  const today = date ?? new Date(new Date().toISOString().slice(0, 10));
   let saved = 0;
   for (const [assetId, v] of live) {
     if (v.quoted === 0 || v.quoted < v.quotable) continue; // only when every quotable position has a quote
@@ -78,9 +78,13 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
     steps.push({ name: "Retenção do registo de atividade", result: `erro: ${e instanceof Error ? e.message : e}` });
   }
 
+  // The job runs at 07:00 UTC, before the markets open: the prices it sees are yesterday's closes,
+  // so the value is recorded on yesterday's date (a value taken during the day is replaced by it).
+  const closeDate = new Date(new Date(new Date().toISOString().slice(0, 10)).getTime() - 86400e3);
+
   // 2a. manual stock portfolios are always recomputed (their value only exists here)
   try {
-    const r = await syncStockPortfolios();
+    const r = await syncStockPortfolios(undefined, closeDate);
     if (r.total) steps.push({ name: "Carteiras de ações (manuais)", result: `${r.synced} de ${r.total} atualizadas${r.errors.length ? ` · ${r.errors.join("; ")}` : ""}` });
   } catch (e) {
     steps.push({ name: "Carteiras de ações (manuais)", result: `erro: ${e instanceof Error ? e.message : e}` });
@@ -89,7 +93,7 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
   // 2b. daily snapshots
   if (s.dailySnapshot) {
     try {
-      const r = await saveDailySnapshots();
+      const r = await saveDailySnapshots(undefined, closeDate);
       steps.push({ name: "Valor diário das carteiras", result: `${r.saved} de ${r.assets} carteiras registadas` });
     } catch (e) {
       steps.push({ name: "Valor diário das carteiras", result: `erro: ${e instanceof Error ? e.message : e}` });

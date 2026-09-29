@@ -196,10 +196,10 @@ export async function getPortfolio(assetId: string, opts: { force?: boolean; res
 }
 
 /** Writes today's value of the portfolio as a snapshot with one position per holding. */
-export async function syncPortfolioSnapshot(assetId: string, opts: { force?: boolean } = {}) {
+export async function syncPortfolioSnapshot(assetId: string, opts: { force?: boolean; date?: Date } = {}) {
   const view = await getPortfolio(assetId, { force: opts.force });
   const open = view.holdings.filter((h) => h.state.quantity > 0);
-  const today = new Date(new Date().toISOString().slice(0, 10));
+  const today = opts.date ?? new Date(new Date().toISOString().slice(0, 10));
   const existing = await prisma.snapshot.findUnique({ where: { assetId_date: { assetId, date: today } } });
   if (existing && existing.source === "MANUAL") return { ...view, snapshot: null, skipped: "Já existe um valor manual registado hoje." };
   const snap = await prisma.snapshot.upsert({

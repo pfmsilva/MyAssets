@@ -146,10 +146,20 @@ export async function getDailyPnl(opts: { assetIds?: string[]; days?: number; as
   };
 
   const raw: { date: Date; value: number; flow: number; live?: boolean }[] = dates.map((d) => ({ date: d, value: valueOn(d), flow: flowOn(d) }));
-  const lastDate = raw.at(-1)?.date;
   if (anyLive) {
-    if (lastDate && iso(lastDate) === iso(today)) raw[raw.length - 1] = { date: today, value: liveTotal, flow: raw[raw.length - 1].flow, live: true };
-    else raw.push({ date: today, value: liveTotal, flow: flowOn(today), live: true });
+    // Today's bar must be the day's change of the quotes (the "Hoje" figure), so the day starts at
+    // yesterday's close rebuilt from them (live value minus the day's change). A record dated today
+    // (taken before the market opened, or during the day) is replaced by the live point, and
+    // yesterday's record by that close: whatever moved between them lands in yesterday's bar.
+    const prevClose = withData.reduce((s, a) => {
+      const l = live.get(a.id);
+      return s + (l && l.quoted > 0 ? l.liveTotal - l.dayChangeEur : (valueAt(a.snapshots, today) ?? 0));
+    }, 0);
+    const yesterday = new Date(today.getTime() - 86400e3);
+    while (raw.length && iso(raw[raw.length - 1].date) >= iso(yesterday)) raw.pop();
+    // liveTotal − prevClose is exactly the day's change, so deposits made today belong to the step before
+    raw.push({ date: yesterday, value: prevClose, flow: flowOn(yesterday) + flowOn(today) });
+    raw.push({ date: today, value: liveTotal, flow: 0, live: true });
   }
 
   const points: DailyPoint[] = [];
