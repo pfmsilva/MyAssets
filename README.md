@@ -42,7 +42,8 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   Pecúlio. Em Administração → Definições → Telegram escolhe-se, para o resumo diário, os alertas e a prova de
   vida, se seguem por e-mail, por Telegram ou pelos dois, e se o relatório PDF segue aos administradores à
   segunda-feira. Por omissão o Telegram mostra só ganhos e perdas, não o valor das carteiras.
-  A qualquer hora, /resumo no Telegram devolve o resumo do momento.
+  Comandos do bot: /resumo (resumo do momento), /carteira [nome], /ativo <ticker|nome|ISIN>, /semana, /mes,
+  /orcamento, /ajuda e /sair.
   Requer `TELEGRAM_BOT_TOKEN` e `APP_URL`: criar o bot com @BotFather (`/newbot`), copiar o token para o Vercel e
   fazer redeploy; o webhook (`/api/telegram/webhook`) é configurado sozinho na primeira ligação.
 - **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.

@@ -85,7 +85,7 @@ export type SummaryDay = { label: string; weekday: string; pnl: number | null; c
  * The two charts of the daily summary in one image, with titles, dates and values drawn in
  * (for Telegram, which shows images but not HTML): bars of each day's change and the cumulative line.
  */
-export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; scale?: number } = {}): Buffer {
+export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; scale?: number; barsTitle?: string; lineTitle?: string } = {}): Buffer {
   const W = 760;
   const padX = 24;
   const colW = (W - 2 * padX) / days.length;
@@ -102,7 +102,7 @@ export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; sca
   }
 
   // ---- bars: change of each day ----
-  parts.push(txt(padX, y + 26, "Variação por dia", { size: 15, color: "#0b0b0b", bold: true, anchor: "start" }));
+  parts.push(txt(padX, y + 26, opts.barsTitle ?? "Variação por dia", { size: 15, color: "#0b0b0b", bold: true, anchor: "start" }));
   const bTop = y + 58;
   const bH = 150;
   const vals = days.map((d) => d.pnl ?? 0);
@@ -114,7 +114,7 @@ export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; sca
   parts.push(`<line x1="${padX}" x2="${W - padX}" y1="${bZero.toFixed(1)}" y2="${bZero.toFixed(1)}" stroke="#c9c8c3" stroke-width="1"/>`);
   days.forEach((d, i) => {
     const x = cx(i);
-    const bw = colW * 0.62;
+    const bw = Math.min(colW * 0.62, 72);
     if (d.pnl === null) {
       parts.push(txt(x, bZero - 6, "—", { color: "#c9c8c3" }));
       return;
@@ -134,7 +134,7 @@ export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; sca
 
   // ---- line: cumulative gain ----
   const lTitle = bLabels + 50;
-  parts.push(txt(padX, lTitle, "Ganho acumulado", { size: 15, color: "#0b0b0b", bold: true, anchor: "start" }));
+  parts.push(txt(padX, lTitle, opts.lineTitle ?? "Ganho acumulado", { size: 15, color: "#0b0b0b", bold: true, anchor: "start" }));
   const lTop = lTitle + 32;
   const lH = 150;
   const cums = days.map((d) => d.cum);

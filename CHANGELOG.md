@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.24.0 — 2026-09-29
+- Novos comandos do bot do Telegram, com a vista da conta ligada (num grupo, a do administrador):
+  - /carteira: hoje e ganho desde o início de cada carteira; /carteira xtb (ou tocar em /carteira_xtb) mostra as posições com a variação do dia, o ganho e a hora das cotações.
+  - /ativo aapl (ticker, nome ou ISIN): cotação, variação do dia e, em cada carteira onde o tem, o ganho de hoje e o ganho total; se não o tiver, mostra só a cotação.
+  - /semana e /mes: gráfico da variação e do ganho acumulado das últimas 8 semanas ou dos últimos 12 meses, com a melhor e a pior.
+  - /orcamento: gastos do mês por categoria face ao orçamento, o que falta ou quanto passou, o mês anterior e a projeção para o fim do mês.
+- Em conversa privada os comandos também funcionam sem "/" (por exemplo "carteira xtb"); /ajuda lista tudo e o menu "/" do bot é atualizado.
+- Valores das carteiras, quantidades e preços médios só aparecem se "Mostrar no Telegram também o valor das carteiras" estiver ligado em Definições; por omissão só ganhos, perdas e percentagens.
+
 ## 1.23.0 — 2026-09-29
 - Telegram: enviar /resumo ao bot (ou escolher no menu "/") devolve em poucos segundos o resumo do momento, com os gráficos dos últimos 7 dias e o ganho de hoje por carteira às cotações atuais. Funciona na conversa privada e no grupo da família ligado; num grupo ligado por várias pessoas mostra a vista do administrador.
 - Pedidos repetidos em menos de 30 segundos são ignorados, e os resumos pedidos (no Telegram ou pelos botões da aplicação) já não contam como o resumo automático do fim do dia, que continua a chegar.
