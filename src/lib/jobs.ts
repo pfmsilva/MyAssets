@@ -1,6 +1,8 @@
 import { prisma } from "./prisma";
 import { getSettings, alertRecipients } from "./settings";
 import { appUrl, emailConfigured, emailLayout, sendEmail } from "./email";
+import { chatsForUsers, sendTelegramDocument, sendTelegramMessage, telegramConfigured, viaEmail, viaTelegram } from "./telegram";
+import { buildFamilyReport } from "./report";
 import { buildBackupJson } from "./export";
 import { getCurrentValues } from "./analytics";
 import { getLiveValuations } from "./quotes";
@@ -101,7 +103,8 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
   }
 
   // 3. alerts
-  const alerts: { key: string; title: string; html: string; repeatDays: number }[] = [];
+  // `tg`: the same alert for Telegram without portfolio values (unless the totals were allowed)
+  const alerts: { key: string; title: string; html: string; tg?: string; repeatDays: number }[] = [];
   const values = await getCurrentValues();
   if (s.alertStaleDays > 0) {
     const stale = values.filter((a) => !a.date || Date.now() - new Date(a.date).getTime() > s.alertStaleDays * 86400e3);
@@ -113,7 +116,7 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
     for (const [assetId, v] of live) {
       if (v.dayChangePct !== null && Math.abs(v.dayChangePct) * 100 >= s.alertMovePct) {
         const name = values.find((a) => a.id === assetId)?.name ?? assetId;
-        alerts.push({ key: `move:${assetId}:${new Date().toISOString().slice(0, 10)}`, title: `${name} ${v.dayChangePct >= 0 ? "subiu" : "desceu"} ${fmtPct(Math.abs(v.dayChangePct))} hoje`, html: `<b>${name}</b>: ${v.dayChangeEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(v.dayChangeEur))} (${v.dayChangePct >= 0 ? "+" : ""}${fmtPct(v.dayChangePct)}) no dia; valor em direto ${fmtEur(v.liveTotal)}.`, repeatDays: 1 });
+        alerts.push({ key: `move:${assetId}:${new Date().toISOString().slice(0, 10)}`, title: `${name} ${v.dayChangePct >= 0 ? "subiu" : "desceu"} ${fmtPct(Math.abs(v.dayChangePct))} hoje`, html: `<b>${name}</b>: ${v.dayChangeEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(v.dayChangeEur))} (${v.dayChangePct >= 0 ? "+" : ""}${fmtPct(v.dayChangePct)}) no dia; valor em direto ${fmtEur(v.liveTotal)}.`, tg: `<b>${name}</b>: ${v.dayChangeEur >= 0 ? "+" : "-"}${fmtEur(Math.abs(v.dayChangeEur))} (${v.dayChangePct >= 0 ? "+" : ""}${fmtPct(v.dayChangePct)}) no dia.`, repeatDays: 1 });
       }
     }
   }
@@ -126,13 +129,35 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
   for (const a of alerts) if (opts.force || !(await alreadySent(a.key, a.repeatDays))) pending.push(a);
   if (!pending.length) steps.push({ name: "Alertas", result: `${alerts.length} condições verificadas, nada novo a enviar` });
   else if (opts.dryRun) steps.push({ name: "Alertas (simulação)", result: pending.map((a) => a.title).join("; ") });
-  else if (!to.length) steps.push({ name: "Alertas", result: `${pending.length} alerta(s) mas sem destinatários configurados` });
-  else if (!emailConfigured()) steps.push({ name: "Alertas", result: `${pending.length} alerta(s) mas e-mail não configurado (RESEND_API_KEY / ALERTS_FROM)` });
   else {
-    const html = emailLayout("Alertas", `<ul>${pending.map((a) => `<li style="margin-bottom:8px">${a.html}</li>`).join("")}</ul>`, url);
-    const r = await sendEmail({ to, subject: `Pecúlio · ${pending.length === 1 ? pending[0].title : `${pending.length} alertas`}`, html });
-    if (r.ok) for (const a of pending) await markSent(a.key);
-    steps.push({ name: "Alertas", result: r.ok ? `${pending.length} alerta(s) enviados para ${to.join(", ")}` : `erro no envio: ${r.error}` });
+    const results: string[] = [];
+    let delivered = false;
+    if (viaEmail(s.alertChannel)) {
+      if (!to.length) results.push("e-mail: sem destinatários configurados");
+      else if (!emailConfigured()) results.push("e-mail não configurado (RESEND_API_KEY / ALERTS_FROM)");
+      else {
+        const html = emailLayout("Alertas", `<ul>${pending.map((a) => `<li style="margin-bottom:8px">${a.html}</li>`).join("")}</ul>`, url);
+        const r = await sendEmail({ to, subject: `Pecúlio · ${pending.length === 1 ? pending[0].title : `${pending.length} alertas`}`, html });
+        results.push(r.ok ? `e-mail para ${to.join(", ")}` : `erro no e-mail: ${r.error}`);
+        delivered ||= r.ok;
+      }
+    }
+    if (viaTelegram(s.alertChannel)) {
+      if (!telegramConfigured()) results.push("Telegram não configurado (TELEGRAM_BOT_TOKEN)");
+      else {
+        const chats = await chatsForUsers({ admins: true });
+        if (!chats.length) results.push("Telegram: nenhum administrador ligado");
+        else {
+          const text = `🔔 <b>${pending.length === 1 ? "Alerta" : `${pending.length} alertas`} do Pecúlio</b>\n${pending.map((a) => `• ${s.telegramShowTotals ? a.html : (a.tg ?? a.html)}`).join("\n")}`;
+          let ok = 0;
+          for (const c of chats) if ((await sendTelegramMessage(c, text, { buttonText: "Abrir o Pecúlio", buttonUrl: url || undefined })).ok) ok++;
+          results.push(`Telegram: ${ok} de ${chats.length} conversa(s)`);
+          delivered ||= ok > 0;
+        }
+      }
+    }
+    if (delivered) for (const a of pending) await markSent(a.key);
+    steps.push({ name: "Alertas", result: `${pending.length} alerta(s) · ${results.join(" · ")}` });
   }
 
   // 4. proof of life (dead man's switch)
@@ -151,6 +176,23 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
       const buf = await buildBackupJson();
       const r = await sendEmail({ to, subject: `Pecúlio · backup ${new Date().toISOString().slice(0, 10)}`, html: emailLayout("Backup semanal", `<p>Em anexo o backup completo dos dados (${(buf.length / 1024).toFixed(0)} KB, JSON). Guarde-o num local seguro.</p>`, url), attachments: [{ filename: `peculio-backup-${new Date().toISOString().slice(0, 10)}.json`, content: buf }] });
       steps.push({ name: "Backup semanal", result: r.ok ? `enviado para ${to.join(", ")}` : `erro: ${r.error}` });
+    }
+  }
+
+  // 6. weekly PDF report on Telegram (Mondays)
+  if (s.telegramWeeklyReport && (opts.force || new Date().getUTCDay() === 1)) {
+    if (!telegramConfigured()) steps.push({ name: "Relatório no Telegram", result: "ativo mas TELEGRAM_BOT_TOKEN não definido" });
+    else if (opts.dryRun) steps.push({ name: "Relatório no Telegram (simulação)", result: "seria enviado aos administradores ligados" });
+    else {
+      const chats = await chatsForUsers({ admins: true });
+      if (!chats.length) steps.push({ name: "Relatório no Telegram", result: "nenhum administrador ligado ao Telegram" });
+      else {
+        const pdf = await buildFamilyReport("tarefa semanal");
+        const date = new Date().toISOString().slice(0, 10);
+        let ok = 0;
+        for (const c of chats) if ((await sendTelegramDocument(c, pdf, `peculio-relatorio-${date}.pdf`, "📄 Relatório semanal do património")).ok) ok++;
+        steps.push({ name: "Relatório no Telegram", result: `enviado para ${ok} de ${chats.length} conversa(s)` });
+      }
     }
   }
   return { ranAt: new Date().toISOString(), steps };

@@ -3,7 +3,8 @@ import { prisma } from "./prisma";
 import { getScope } from "./scope";
 import { getDailyPnl } from "./daily-pnl";
 import { appUrl, emailConfigured, emailLayout, sendEmail, type Attachment } from "./email";
-import { lineChartPng } from "./chart-png";
+import { lineChartPng, summaryChartsPng } from "./chart-png";
+import { escHtml, sendTelegramPhotos, telegramConfigured, viaEmail, viaTelegram, type Channel } from "./telegram";
 import { getSettings } from "./settings";
 import { fmtEur } from "./format";
 
@@ -58,10 +59,17 @@ function labelsHtml(points: { label: string; sub: string; value: number | null }
 
 const CUMULATIVE_CID = "ganho-acumulado";
 
-export type SummaryContent = { subject: string; html: string; text: string; attachments: Attachment[] };
+export type SummaryContent = {
+  subject: string;
+  html: string;
+  text: string;
+  attachments: Attachment[];
+  /** The same summary for Telegram: one image with both charts and a short caption. */
+  telegram: { png: Buffer; caption: string };
+};
 
-/** The end-of-day e-mail for one user: last 7 days of the quoted portfolios, day by day. */
-export async function buildDailySummary(user: { id: string; role: Role; name?: string | null }): Promise<SummaryContent | null> {
+/** The end-of-day summary for one user: last 7 days of the quoted portfolios, day by day. */
+export async function buildDailySummary(user: { id: string; role: Role; name?: string | null }, opts: { telegramTotals?: boolean } = {}): Promise<SummaryContent | null> {
   const scope = await getScope(user);
   const pnl = await getDailyPnl({ assetIds: scope.assetIds, days: 7, group: "day", onlyQuoted: true });
   if (!pnl.points.length) return null;
@@ -121,49 +129,82 @@ ${labelsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.pnl ===
   // the cumulative line is an image embedded in the message (e-mail clients do not draw SVG);
   // days without a record keep the line flat, as in the app
   const chart = lineChartPng(days.map((p) => p.cum), { width: 556, height: 150 });
+
+  // Telegram: gains and losses only, unless the totals were allowed in Definições
+  const live = pnl.assets.filter((a) => a.live);
+  const caption = [
+    `<b>Pecúlio · ${escHtml(dateLabel)}</b>`,
+    `Hoje: <b>${signed(today)}</b> · 7 dias: <b>${signed(week)}</b>`,
+    opts.telegramTotals ? `Carteiras em direto: ${fmtEur(value, 0)}` : null,
+    live.length ? live.map((a) => `${escHtml(a.name)} ${signed(a.today ?? 0)}`).join(" · ") : null,
+    quotesAt ? `<i>cotações das ${quotesAt}</i>` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
   return {
     subject: `Pecúlio · hoje ${signed(today)} · 7 dias ${signed(week)}`,
     html: emailLayout("Resumo do dia", body, url),
     text,
     attachments: [{ filename: "ganho-acumulado.png", content: chart, contentId: CUMULATIVE_CID }],
+    telegram: { png: summaryChartsPng(days), caption },
   };
 }
 
-export type SummaryReport = { ranAt: string; sent: number; skipped: string[]; errors: string[] };
+export type SummaryReport = { ranAt: string; sent: number; telegram?: number; skipped: string[]; errors: string[] };
 
-/** Sends the end-of-day summary to the chosen users, once a day each. */
-export async function runDailySummary(opts: { force?: boolean; onlyUserId?: string } = {}): Promise<SummaryReport> {
-  const report: SummaryReport = { ranAt: new Date().toISOString(), sent: 0, skipped: [], errors: [] };
+/**
+ * Sends the end-of-day summary to the chosen users, once a day each, by e-mail and/or Telegram.
+ * `channel` overrides the setting (the preview buttons use it).
+ */
+export async function runDailySummary(opts: { force?: boolean; onlyUserId?: string; channel?: Channel } = {}): Promise<SummaryReport> {
+  const report: SummaryReport = { ranAt: new Date().toISOString(), sent: 0, telegram: 0, skipped: [], errors: [] };
   const s = await getSettings();
+  const channel = opts.channel ?? s.dailySummaryChannel;
   if (!opts.onlyUserId && s.dailySummary === "off") return { ...report, skipped: ["resumo diário desativado"] };
-  if (!emailConfigured()) return { ...report, errors: ["e-mail não configurado (RESEND_API_KEY, ALERTS_FROM)"] };
+  const mail = viaEmail(channel) && emailConfigured();
+  const tg = viaTelegram(channel) && telegramConfigured();
+  if (viaEmail(channel) && !emailConfigured()) report.errors.push("e-mail não configurado (RESEND_API_KEY, ALERTS_FROM)");
+  if (viaTelegram(channel) && !telegramConfigured()) report.errors.push("Telegram não configurado (TELEGRAM_BOT_TOKEN)");
+  if (!mail && !tg) return report;
   const lisbonDay = new Date().toLocaleDateString("en-GB", { timeZone: "Europe/Lisbon", weekday: "short" });
   if (!opts.force && !s.dailySummaryWeekends && (lisbonDay === "Sat" || lisbonDay === "Sun")) return { ...report, skipped: ["fim de semana"] };
 
   const users = await prisma.user.findMany({
     where: opts.onlyUserId ? { id: opts.onlyUserId } : s.dailySummary === "admins" ? { role: "ADMIN" } : {},
-    select: { id: true, email: true, name: true, role: true },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }], // administrators first: a shared family group gets their view
+    select: { id: true, email: true, name: true, role: true, telegramChatId: true },
   });
   const day = new Date().toISOString().slice(0, 10);
   for (const u of users) {
-    const key = `summary:${u.id}:${day}`;
-    if (!opts.force && (await prisma.alertSent.findUnique({ where: { key } }))) {
-      report.skipped.push(`${u.email}: já enviado hoje`);
+    const mailKey = `summary:${u.id}:${day}`;
+    const tgKey = u.telegramChatId ? `summary-tg:${u.telegramChatId}:${day}` : null;
+    const needMail = mail && (opts.force || !(await prisma.alertSent.findUnique({ where: { key: mailKey } })));
+    // a group linked by several people receives the summary once
+    const needTg = tg && !!tgKey && (opts.force ? true : !(await prisma.alertSent.findUnique({ where: { key: tgKey } })));
+    if (!needMail && !needTg) {
+      report.skipped.push(`${u.email}: já enviado hoje${tg && !u.telegramChatId ? " (Telegram não ligado)" : ""}`);
       continue;
     }
     try {
-      const content = await buildDailySummary(u);
+      const content = await buildDailySummary(u, { telegramTotals: s.telegramShowTotals });
       if (!content) {
         report.skipped.push(`${u.email}: sem carteiras com cotação`);
         continue;
       }
-      const r = await sendEmail({ to: [u.email], subject: content.subject, html: content.html, text: content.text, attachments: content.attachments });
-      if (!r.ok) {
-        report.errors.push(`${u.email}: ${r.error}`);
-        continue;
+      if (needMail) {
+        const r = await sendEmail({ to: [u.email], subject: content.subject, html: content.html, text: content.text, attachments: content.attachments });
+        if (r.ok) {
+          await prisma.alertSent.upsert({ where: { key: mailKey }, create: { key: mailKey }, update: { sentAt: new Date() } });
+          report.sent++;
+        } else report.errors.push(`${u.email}: ${r.error}`);
       }
-      await prisma.alertSent.upsert({ where: { key }, create: { key }, update: { sentAt: new Date() } });
-      report.sent++;
+      if (needTg && tgKey) {
+        const r = await sendTelegramPhotos(u.telegramChatId!, [{ png: content.telegram.png, name: "resumo.png" }], content.telegram.caption);
+        if (r.ok) {
+          await prisma.alertSent.upsert({ where: { key: tgKey }, create: { key: tgKey }, update: { sentAt: new Date() } });
+          report.telegram = (report.telegram ?? 0) + 1;
+        } else report.errors.push(`${u.email} (Telegram): ${r.error}`);
+      } else if (tg && !u.telegramChatId && opts.onlyUserId) report.skipped.push("Telegram ainda não ligado nesta conta");
     } catch (e) {
       report.errors.push(`${u.email}: ${e instanceof Error ? e.message.slice(0, 100) : "erro"}`);
     }

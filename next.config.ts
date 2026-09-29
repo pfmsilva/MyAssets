@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfkit", "pdfjs-dist", "@resvg/resvg-js"],
   // pdf.js loads its worker dynamically; make sure serverless bundles ship it (and pdfkit's font data)
   outputFileTracingIncludes: {
-    "/*": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", "./node_modules/pdfjs-dist/legacy/build/pdf.mjs", "./node_modules/pdfkit/js/data/**/*"],
+    "/*": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", "./node_modules/pdfjs-dist/legacy/build/pdf.mjs", "./node_modules/pdfkit/js/data/**/*", "./assets/fonts/**/*"],
   },
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,

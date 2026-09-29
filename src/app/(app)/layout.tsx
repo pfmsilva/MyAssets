@@ -29,8 +29,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
         <SideNav items={items} />
         <div className="mt-auto border-t border-border pt-3">
-          <p className="truncate px-2 text-sm font-medium">{user.name ?? user.email}</p>
-          <p className="truncate px-2 text-xs text-ink-3">{ROLE_LABEL[user.role]}</p>
+          <Link href="/conta" className="block rounded-lg px-2 py-1 hover:bg-surface-2" title="A minha conta">
+            <p className="truncate text-sm font-medium">{user.name ?? user.email}</p>
+            <p className="truncate text-xs text-ink-3">{ROLE_LABEL[user.role]} · a minha conta</p>
+          </Link>
           <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
             <button className="btn btn-sm mt-2 w-full" type="submit">Sair</button>
           </form>
@@ -53,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               {more.map((m) => (
                 <Link key={m.href} href={m.href} className="block rounded px-2 py-1.5 text-sm hover:bg-surface-2">{m.label}</Link>
               ))}
+              <Link href="/conta" className="block rounded px-2 py-1.5 text-sm hover:bg-surface-2">A minha conta</Link>
               <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
                 <button className="btn btn-sm mt-1 w-full" type="submit">Sair</button>
               </form>

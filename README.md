@@ -38,6 +38,12 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   Vercel Cron `/api/cron/evening`) cada utilizador recebe os gráficos da variação por dia e do ganho acumulado dos
   últimos 7 dias das carteiras com cotação que pode ver, com a tabela dia a dia e o "hoje" por carteira. Os
   gráficos são tabelas HTML, para aparecerem em qualquer cliente de e-mail.
+- **Telegram** (A minha conta → Ligar Telegram): cada pessoa liga a sua conta, ou um grupo da família, ao bot do
+  Pecúlio. Em Administração → Definições → Telegram escolhe-se, para o resumo diário, os alertas e a prova de
+  vida, se seguem por e-mail, por Telegram ou pelos dois, e se o relatório PDF segue aos administradores à
+  segunda-feira. Por omissão o Telegram mostra só ganhos e perdas, não o valor das carteiras.
+  Requer `TELEGRAM_BOT_TOKEN` e `APP_URL`: criar o bot com @BotFather (`/newbot`), copiar o token para o Vercel e
+  fazer redeploy; o webhook (`/api/telegram/webhook`) é configurado sozinho na primeira ligação.
 - **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.
 - **Atualizar tudo**: um botão na visão geral (e na página de cada carteira) que refresca as cotações, recalcula as
   carteiras de ações e regista o valor do dia.
@@ -97,8 +103,9 @@ Auth.js v5 (Google) · Recharts · SheetJS.
    | `ADMIN_EMAIL` | email Google que fica administrador no primeiro login |
    | `CRON_SECRET` | texto aleatório; autoriza a tarefa diária do Vercel Cron (`/api/cron/daily`) |
    | `RESEND_API_KEY` / `ALERTS_FROM` | opcional, para alertas e backups por e-mail via https://resend.com (ex.: `Pecúlio <alertas@o-teu-dominio.pt>`; sem domínio próprio usar `onboarding@resend.dev`, que só entrega ao e-mail da conta Resend) |
-   | `APP_URL` | opcional, URL público usado nos e-mails |
+   | `APP_URL` | opcional, URL público usado nos e-mails e no webhook do Telegram |
    | `ANTHROPIC_API_KEY` | opcional, para a análise de IA (https://console.anthropic.com); cada análise custa poucos cêntimos |
+   | `TELEGRAM_BOT_TOKEN` | opcional, token do bot criado em @BotFather, para enviar o resumo, alertas e prova de vida por Telegram (requer `APP_URL`) |
 
    O comando de build (`prisma generate && prisma migrate deploy && next build`) cria as tabelas.
 4. **Dados iniciais** (membros, ativos, categorias e regras), uma vez, a partir do teu PC:

@@ -52,6 +52,8 @@ export const ACTION_LABEL: Record<string, string> = {
   "pol.reset": "Ciclo de prova de vida reiniciado",
   "email.test": "E-mail de teste",
   "summary.test": "Resumo diário de teste",
+  "telegram.link": "Telegram ligado",
+  "telegram.unlink": "Telegram desligado",
   "jobs.run": "Tarefas diárias executadas",
   "activity.purge": "Registo de atividade limpo",
   "export.excel": "Exportação Excel",

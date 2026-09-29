@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.22.0 — 2026-09-29
+- Ligação ao Telegram: em "A minha conta" cada pessoa liga a sua conta (ou um grupo da família) ao bot do Pecúlio com um link válido 24 horas; "/sair" no Telegram ou "Desligar" na aplicação desfazem a ligação.
+- O resumo do fim do dia chega ao Telegram como uma imagem com os gráficos da variação por dia e do ganho acumulado dos últimos 7 dias, e o ganho de hoje por carteira na legenda.
+- Alertas e prova de vida podem seguir por Telegram; o relatório PDF pode seguir aos administradores à segunda-feira.
+- Em Administração → Definições → Telegram escolhe-se, para cada envio, só e-mail, só Telegram ou os dois. Por omissão o Telegram não mostra o valor das carteiras, só ganhos e perdas.
+- Requer `TELEGRAM_BOT_TOKEN` (criado em @BotFather) e `APP_URL` no Vercel.
+
 ## 1.21.1 — 2026-09-29
 - Resumo diário por e-mail: o ganho acumulado dos 7 dias passa a ser um gráfico de linha com área sombreada, igual ao da secção de Investimentos (verde se positivo, vermelho se negativo), embutido no e-mail como imagem; as datas e os valores ficam por baixo, alinhados com cada ponto.
 

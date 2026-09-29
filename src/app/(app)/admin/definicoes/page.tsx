@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { auth } from "@/auth";
+import { telegramConfigured } from "@/lib/telegram";
 import { logView } from "@/lib/activity";
 import { getSettings } from "@/lib/settings";
 import { emailConfigured } from "@/lib/email";
@@ -40,7 +42,12 @@ export default async function SettingsAdmin() {
   const lastSummaryRow = await prisma.setting.findUnique({ where: { key: "lastSummaryReport" } });
   const lastSummary: SummaryReport | null = lastSummaryRow ? (JSON.parse(lastSummaryRow.value) as SummaryReport) : null;
   const summaryWho = { off: "desligado", admins: "para os administradores", all: "para todos os utilizadores" }[s.dailySummary];
-  const summaryLine = `${summaryWho}${s.dailySummary !== "off" ? ` · ${s.dailySummaryWeekends ? "todos os dias" : "dias úteis"} às ~22h30` : ""}${lastSummary ? ` · último envio ${new Date(lastSummary.ranAt).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}: ${lastSummary.sent} e-mail(s)` : ""}`;
+  const CH = { email: "e-mail", telegram: "Telegram", both: "e-mail e Telegram" } as const;
+  const summaryLine = `${summaryWho}${s.dailySummary !== "off" ? ` · por ${CH[s.dailySummaryChannel]} · ${s.dailySummaryWeekends ? "todos os dias" : "dias úteis"} às ~22h30` : ""}${lastSummary ? ` · último envio ${new Date(lastSummary.ranAt).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}: ${lastSummary.sent} e-mail(s)${lastSummary.telegram ? `, ${lastSummary.telegram} Telegram` : ""}` : ""}`;
+  const tgUsers = await prisma.user.findMany({ where: { telegramChatId: { not: null } }, select: { name: true, email: true, role: true, telegramName: true }, orderBy: { email: "asc" } });
+  const tgLine = !telegramConfigured()
+    ? "por configurar (TELEGRAM_BOT_TOKEN)"
+    : `${tgUsers.length} pessoa(s) ligada(s) · resumo por ${CH[s.dailySummaryChannel]} · alertas por ${CH[s.alertChannel]} · prova de vida por ${CH[s.polChannel]}`;
   const pol = await getPolState();
   const [activityCount, oldest] = await Promise.all([prisma.activityLog.count(), prisma.activityLog.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } })]);
   const alertCount = s.alertEmails.split(",").map((e) => e.trim()).filter(Boolean).length;
@@ -107,6 +114,34 @@ export default async function SettingsAdmin() {
               {lastSummary && (lastSummary.errors.length > 0 || lastSummary.skipped.length > 0) && (
                 <p className="text-xs text-ink-3 sm:col-span-2">Último envio: {[...lastSummary.errors, ...lastSummary.skipped].slice(0, 4).join(" · ")}</p>
               )}
+            </Section>
+
+            <Section title="Telegram" summary={tgLine}>
+              <p className="text-sm text-ink-2 sm:col-span-2">
+                Cada pessoa liga a sua conta em <Link href="/conta" className="text-accent underline">A minha conta</Link> (ou um grupo da família). Aqui escolhe-se o que segue por e-mail, por Telegram ou pelos dois. Os alertas e o relatório vão para os administradores ligados; a prova de vida para quem a recebe por e-mail e tenha ligado o Telegram.
+                {!telegramConfigured() && <> Para ativar: no Telegram fale com <b>@BotFather</b>, envie <code>/newbot</code>, e guarde o token em <code>TELEGRAM_BOT_TOKEN</code> no Vercel.</>}
+              </p>
+              {(
+                [
+                  ["dailySummaryChannel", "Resumo diário", s.dailySummaryChannel],
+                  ["alertChannel", "Alertas", s.alertChannel],
+                  ["polChannel", "Prova de vida", s.polChannel],
+                ] as const
+              ).map(([name, label, value]) => (
+                <div key={name} className="flex flex-col gap-1">
+                  <label htmlFor={name}>{label}</label>
+                  <select id={name} name={name} defaultValue={value}>
+                    <option value="email">Só e-mail</option>
+                    <option value="telegram">Só Telegram</option>
+                    <option value="both">E-mail e Telegram</option>
+                  </select>
+                </div>
+              ))}
+              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="telegramShowTotals" defaultChecked={s.telegramShowTotals} /> Mostrar no Telegram também o valor das carteiras (por omissão só ganhos e perdas)</label>
+              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="telegramWeeklyReport" defaultChecked={s.telegramWeeklyReport} /> Enviar o relatório PDF aos administradores no Telegram à segunda-feira</label>
+              <div className="text-xs text-ink-3 sm:col-span-2">
+                {tgUsers.length ? <>Ligados: {tgUsers.map((u) => `${u.name ?? u.email} → ${u.telegramName}`).join(" · ")}</> : "Ainda ninguém ligou o Telegram."}
+              </div>
             </Section>
 
             <Section title="Backup e valor diário" summary={`${s.backupWeeklyEmail ? "backup semanal por e-mail" : "sem backup por e-mail"} · ${s.dailySnapshot ? "valor diário das carteiras ligado" : "valor diário desligado"}`}>

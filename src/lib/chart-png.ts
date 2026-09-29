@@ -1,4 +1,8 @@
+import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
+
+/** Fonts shipped with the app (DejaVu, free licence): the servers have no fonts of their own. */
+const FONTS = [join(process.cwd(), "assets/fonts/DejaVuSans.ttf"), join(process.cwd(), "assets/fonts/DejaVuSans-Bold.ttf")];
 
 /**
  * Monotone cubic curve through the points (Fritsch–Carlson), the same shape as the
@@ -62,4 +66,109 @@ export function lineChartPng(values: (number | null)[], opts: { width?: number; 
   ${pts.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#ffffff" stroke="${color}" stroke-width="2"/>`).join("")}
 </svg>`;
   return new Resvg(svg, { fitTo: { mode: "zoom", value: scale }, background: "#ffffff" }).render().asPng();
+}
+
+const xmlEsc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+/** "+4,4 k€" style labels, short enough for seven columns. */
+function compactEur(v: number) {
+  const a = Math.abs(v);
+  const sign = v > 0 ? "+" : v < 0 ? "-" : "";
+  if (a >= 1e6) return `${sign}${(a / 1e6).toLocaleString("pt-PT", { maximumFractionDigits: 1 })} M€`;
+  if (a >= 1000) return `${sign}${(a / 1000).toLocaleString("pt-PT", { maximumFractionDigits: a >= 1e4 ? 0 : 1 })} k€`;
+  return `${sign}${Math.round(a)} €`;
+}
+
+export type SummaryDay = { label: string; weekday: string; pnl: number | null; cum: number };
+
+/**
+ * The two charts of the daily summary in one image, with titles, dates and values drawn in
+ * (for Telegram, which shows images but not HTML): bars of each day's change and the cumulative line.
+ */
+export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; scale?: number } = {}): Buffer {
+  const W = 760;
+  const padX = 24;
+  const colW = (W - 2 * padX) / days.length;
+  const cx = (i: number) => padX + (i + 0.5) * colW;
+  const txt = (x: number, y: number, s: string, o: { size?: number; color?: string; bold?: boolean; anchor?: string } = {}) =>
+    `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="DejaVu Sans" font-size="${o.size ?? 13}" fill="${o.color ?? "#52514e"}" ${o.bold ? 'font-weight="bold"' : ""} text-anchor="${o.anchor ?? "middle"}">${xmlEsc(s)}</text>`;
+  const green = "#1baf7a";
+  const red = "#e34948";
+  let y = 0;
+  const parts: string[] = [];
+  if (opts.title) {
+    parts.push(txt(padX, 30, opts.title, { size: 18, color: "#0b0b0b", bold: true, anchor: "start" }));
+    y = 44;
+  }
+
+  // ---- bars: change of each day ----
+  parts.push(txt(padX, y + 26, "Variação por dia", { size: 15, color: "#0b0b0b", bold: true, anchor: "start" }));
+  const bTop = y + 58;
+  const bH = 150;
+  const vals = days.map((d) => d.pnl ?? 0);
+  const bMax = Math.max(0, ...vals);
+  const bMin = Math.min(0, ...vals);
+  const bSpan = bMax - bMin || 1;
+  const by = (v: number) => bTop + ((bMax - v) / bSpan) * bH;
+  const bZero = by(0);
+  parts.push(`<line x1="${padX}" x2="${W - padX}" y1="${bZero.toFixed(1)}" y2="${bZero.toFixed(1)}" stroke="#c9c8c3" stroke-width="1"/>`);
+  days.forEach((d, i) => {
+    const x = cx(i);
+    const bw = colW * 0.62;
+    if (d.pnl === null) {
+      parts.push(txt(x, bZero - 6, "—", { color: "#c9c8c3" }));
+      return;
+    }
+    const top = Math.min(by(d.pnl), bZero);
+    const h = Math.max(1.5, Math.abs(by(d.pnl) - bZero));
+    const color = d.pnl >= 0 ? green : red;
+    parts.push(`<rect x="${(x - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`);
+    const ly = d.pnl >= 0 ? top - 6 : top + h + 15;
+    parts.push(txt(x, ly, compactEur(d.pnl), { size: 12, color }));
+  });
+  const bLabels = bTop + bH + 34;
+  days.forEach((d, i) => {
+    parts.push(txt(cx(i), bLabels, d.label, { size: 12, color: "#52514e" }));
+    parts.push(txt(cx(i), bLabels + 15, d.weekday, { size: 11, color: "#8a8985" }));
+  });
+
+  // ---- line: cumulative gain ----
+  const lTitle = bLabels + 50;
+  parts.push(txt(padX, lTitle, "Ganho acumulado", { size: 15, color: "#0b0b0b", bold: true, anchor: "start" }));
+  const lTop = lTitle + 32;
+  const lH = 150;
+  const cums = days.map((d) => d.cum);
+  const lMax = Math.max(0, ...cums);
+  const lMin = Math.min(0, ...cums);
+  const lSpan = lMax - lMin || 1;
+  const ly = (v: number) => lTop + ((lMax - v) / lSpan) * lH;
+  const lZero = ly(0);
+  const pts = days.map((d, i) => ({ x: cx(i), y: ly(d.cum) }));
+  const last = cums.at(-1) ?? 0;
+  const lc = last >= 0 ? "#008300" : red;
+  const line = monotonePath(pts);
+  const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${lZero.toFixed(1)} L${pts[0].x.toFixed(1)},${lZero.toFixed(1)} Z`;
+  parts.push(`<line x1="${padX}" x2="${W - padX}" y1="${lZero.toFixed(1)}" y2="${lZero.toFixed(1)}" stroke="#c9c8c3" stroke-width="1"/>`);
+  parts.push(`<path d="${area}" fill="url(#g)"/>`);
+  parts.push(`<path d="${line}" fill="none" stroke="${lc}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`);
+  days.forEach((d, i) => {
+    const p = pts[i];
+    parts.push(`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#ffffff" stroke="${lc}" stroke-width="2.5"/>`);
+    if (d.pnl !== null) parts.push(txt(p.x, d.cum >= 0 ? p.y - 11 : p.y + 21, compactEur(d.cum), { size: 12, color: d.cum >= 0 ? "#008300" : red }));
+  });
+  const lLabels = lTop + lH + 48;
+  days.forEach((d, i) => {
+    parts.push(txt(cx(i), lLabels, d.label, { size: 12, color: "#52514e" }));
+    parts.push(txt(cx(i), lLabels + 15, d.weekday, { size: 11, color: "#8a8985" }));
+  });
+
+  const H = lLabels + 30;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${lc}" stop-opacity="0.28"/><stop offset="100%" stop-color="${lc}" stop-opacity="0.04"/>
+  </linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="#ffffff"/>
+  ${parts.join("\n  ")}
+</svg>`;
+  return new Resvg(svg, { fitTo: { mode: "zoom", value: opts.scale ?? 2 }, background: "#ffffff", font: { fontFiles: FONTS, loadSystemFonts: false, defaultFontFamily: "DejaVu Sans" } }).render().asPng();
 }

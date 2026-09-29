@@ -5,6 +5,7 @@ import { getSettings, polBeneficiaries, polRecipients, Settings } from "./settin
 import { appUrl, emailConfigured, emailLayout, sendEmail } from "./email";
 import { buildFamilyReport } from "./report";
 import { fmtDate } from "./format";
+import { chatsForUsers, sendTelegramMessage, telegramConfigured, viaEmail, viaTelegram } from "./telegram";
 
 export type Step = { name: string; result: string };
 
@@ -56,6 +57,31 @@ export async function getPolState(): Promise<PolState> {
   };
 }
 
+/**
+ * Delivers a proof-of-life message by e-mail and/or Telegram (to the recipients who linked it).
+ * It counts as delivered if at least one channel worked: a request nobody received must not open a cycle.
+ */
+async function deliver(s: Settings, to: string[], mail: { subject: string; html: string }, tg: { text: string; button: string; url: string }) {
+  const parts: string[] = [];
+  let ok = false;
+  if (viaEmail(s.polChannel)) {
+    const r = await sendEmail({ to, subject: mail.subject, html: mail.html });
+    parts.push(r.ok ? `e-mail para ${to.join(", ")}` : `e-mail falhou (${r.error})`);
+    ok ||= r.ok;
+  }
+  if (viaTelegram(s.polChannel)) {
+    if (!telegramConfigured()) parts.push("Telegram não configurado");
+    else {
+      const chats = await chatsForUsers({ emails: to });
+      let sent = 0;
+      for (const c of chats) if ((await sendTelegramMessage(c, tg.text, { buttonText: tg.button, buttonUrl: tg.url })).ok) sent++;
+      parts.push(chats.length ? `Telegram ${sent} de ${chats.length}` : "Telegram: nenhum destinatário ligado");
+      ok ||= sent > 0;
+    }
+  }
+  return { ok, detail: parts.join(" · ") };
+}
+
 /** Sends the proof-of-life e-mail and opens a new cycle. */
 async function sendCheck(s: Settings): Promise<Step> {
   const to = polRecipients(s);
@@ -73,12 +99,16 @@ async function sendCheck(s: Settings): Promise<Step> {
      <p style="font-size:12px;color:#8a8985">Se o botão não funcionar, abra: ${url}</p>`,
     appUrl(),
   );
-  const r = await sendEmail({ to, subject: `Pecúlio · prova de vida (confirme até ${fmtDate(dueAt)})`, html });
+  const r = await deliver(s, to, { subject: `Pecúlio · prova de vida (confirme até ${fmtDate(dueAt)})`, html }, {
+    text: `🫀 <b>Prova de vida do Pecúlio</b>\nConfirme até <b>${fmtDate(dueAt)}</b>. Basta uma pessoa confirmar; o pedido só volta daqui a ${s.polIntervalDays} dias.\n<i>Sem confirmação, os acessos e o relatório do património são entregues às pessoas definidas.</i>`,
+    button: "Confirmar prova de vida",
+    url,
+  });
   if (!r.ok) {
     await prisma.proofOfLifeCheck.delete({ where: { id: check.id } });
-    return { name: "Prova de vida", result: `falha no envio: ${r.error}` };
+    return { name: "Prova de vida", result: `falha no envio: ${r.detail}` };
   }
-  return { name: "Prova de vida", result: `pedido enviado para ${to.join(", ")}; confirmação até ${fmtDate(dueAt)}` };
+  return { name: "Prova de vida", result: `pedido enviado (${r.detail}); confirmação até ${fmtDate(dueAt)}` };
 }
 
 async function sendReminder(s: Settings, check: NonNullable<PolState["openCheck"]>, remaining: number): Promise<Step> {
@@ -92,9 +122,13 @@ async function sendReminder(s: Settings, check: NonNullable<PolState["openCheck"
      <p style="font-size:12px;color:#8a8985">${url}</p>`,
     appUrl(),
   );
-  const r = await sendEmail({ to, subject: `Pecúlio · lembrete de prova de vida (${remaining} dia(s))`, html });
+  const r = await deliver(s, to, { subject: `Pecúlio · lembrete de prova de vida (${remaining} dia(s))`, html }, {
+    text: `⏰ <b>Prova de vida — faltam ${remaining} dia(s)</b>\nO prazo termina a ${fmtDate(check.dueAt)}. Sem confirmação, os acessos são entregues às pessoas definidas.`,
+    button: "Confirmar agora",
+    url,
+  });
   if (r.ok) await prisma.proofOfLifeCheck.update({ where: { id: check.id }, data: { remindersSent: { increment: 1 } } });
-  return { name: "Prova de vida", result: r.ok ? `lembrete enviado (${remaining} dia(s) para o prazo)` : `falha no lembrete: ${r.error}` };
+  return { name: "Prova de vida", result: r.ok ? `lembrete enviado (${remaining} dia(s) para o prazo; ${r.detail})` : `falha no lembrete: ${r.detail}` };
 }
 
 /** Grants access to the beneficiaries and e-mails them the app link plus the assets report. */

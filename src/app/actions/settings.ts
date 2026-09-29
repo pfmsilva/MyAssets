@@ -35,6 +35,11 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         aiAnonymize: z.boolean(),
         dailySummary: z.enum(["off", "admins", "all"]),
         dailySummaryWeekends: z.boolean(),
+        dailySummaryChannel: z.enum(["email", "telegram", "both"]),
+        alertChannel: z.enum(["email", "telegram", "both"]),
+        polChannel: z.enum(["email", "telegram", "both"]),
+        telegramShowTotals: z.boolean(),
+        telegramWeeklyReport: z.boolean(),
       })
       .parse({
         activityRetentionDays: fd.get("activityRetentionDays") || 0,
@@ -56,6 +61,11 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         aiAnonymize: fd.get("aiAnonymize") === "on",
         dailySummary: fd.get("dailySummary") ?? "off",
         dailySummaryWeekends: fd.get("dailySummaryWeekends") === "on",
+        dailySummaryChannel: fd.get("dailySummaryChannel") ?? "email",
+        alertChannel: fd.get("alertChannel") ?? "email",
+        polChannel: fd.get("polChannel") ?? "email",
+        telegramShowTotals: fd.get("telegramShowTotals") === "on",
+        telegramWeeklyReport: fd.get("telegramWeeklyReport") === "on",
       });
     await saveSettings(data);
     await logActivity(me, "settings.update", { details: data });

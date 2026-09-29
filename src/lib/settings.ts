@@ -22,7 +22,16 @@ export type Settings = {
   aiAnonymize: boolean; // replace family member names before sending
   dailySummary: "off" | "admins" | "all"; // end-of-day e-mail with the last 7 days of the portfolios
   dailySummaryWeekends: boolean; // also on Saturdays and Sundays
+  // ---- channels (e-mail, Telegram or both) ----
+  dailySummaryChannel: Channel;
+  alertChannel: Channel; // Telegram alerts go to the administrators who linked it
+  polChannel: Channel; // Telegram proof-of-life requests go to the recipients who linked it
+  telegramShowTotals: boolean; // include portfolio values (not just gains) in Telegram messages
+  telegramWeeklyReport: boolean; // PDF report to the administrators on Mondays
 };
+
+type Channel = "email" | "telegram" | "both";
+const CHANNELS = ["email", "telegram", "both"];
 
 export const DEFAULTS: Settings = {
   activityRetentionDays: 365,
@@ -45,6 +54,11 @@ export const DEFAULTS: Settings = {
   aiAnonymize: true,
   dailySummary: "off",
   dailySummaryWeekends: false,
+  dailySummaryChannel: "email",
+  alertChannel: "email",
+  polChannel: "email",
+  telegramShowTotals: false,
+  telegramWeeklyReport: false,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -73,6 +87,11 @@ export async function getSettings(): Promise<Settings> {
     aiAnonymize: bool("aiAnonymize"),
     dailySummary: (["off", "admins", "all"].includes(map.get("dailySummary") ?? "") ? map.get("dailySummary") : DEFAULTS.dailySummary) as Settings["dailySummary"],
     dailySummaryWeekends: bool("dailySummaryWeekends"),
+    dailySummaryChannel: (CHANNELS.includes(map.get("dailySummaryChannel") ?? "") ? map.get("dailySummaryChannel") : DEFAULTS.dailySummaryChannel) as Channel,
+    alertChannel: (CHANNELS.includes(map.get("alertChannel") ?? "") ? map.get("alertChannel") : DEFAULTS.alertChannel) as Channel,
+    polChannel: (CHANNELS.includes(map.get("polChannel") ?? "") ? map.get("polChannel") : DEFAULTS.polChannel) as Channel,
+    telegramShowTotals: bool("telegramShowTotals"),
+    telegramWeeklyReport: bool("telegramWeeklyReport"),
   };
 }
 

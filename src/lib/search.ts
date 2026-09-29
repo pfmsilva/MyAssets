@@ -29,7 +29,8 @@ const PAGES: Page[] = [
   { title: "Categorias e regras", href: "/admin/categorias", words: "regras categorizacao automatica", min: "ADMIN" },
   { title: "Cotações", href: "/admin/instrumentos", words: "yahoo simbolos isin cotacoes", min: "ADMIN" },
   { title: "Registo de atividade", href: "/admin/atividade", words: "log auditoria acessos", min: "ADMIN" },
-  { title: "Definições", href: "/admin/definicoes", words: "alertas backup prova de vida retencao cron email ia", min: "ADMIN" },
+  { title: "Definições", href: "/admin/definicoes", words: "alertas backup prova de vida retencao cron email ia telegram resumo diario canais", min: "ADMIN" },
+  { title: "A minha conta", href: "/conta", words: "conta perfil telegram ligar notificacoes mensagens" },
   { title: "Relatório PDF", href: "/api/relatorio", words: "relatorio pdf exportar resumo", min: "ADMIN" },
 ];
 
