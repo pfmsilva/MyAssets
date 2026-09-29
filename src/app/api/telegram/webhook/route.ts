@@ -5,7 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { appUrl } from "@/lib/email";
 import { runDailySummary } from "@/lib/daily-summary";
 import { getSettings } from "@/lib/settings";
-import { ativoReply, carteiraReply, orcamentoReply, periodReply, type Reply } from "@/lib/telegram-commands";
+import { ativoReply, carteiraReply, estadoReply, orcamentoReply, periodReply, type Reply } from "@/lib/telegram-commands";
 import { ensureCommands, escHtml, readLinkCode, sendTelegramAction, sendTelegramMessage, sendTelegramPhotos, webhookSecretOk } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ const HELP = [
   "/ativo aapl — cotação, variação do dia e o que tem desse ativo",
   "/semana e /mes — ganhos por semana (8 semanas) ou por mês (12 meses)",
   "/orcamento — gastos do mês face ao orçamento",
+  "/estado — tarefas agendadas, cotações e bot a funcionar? (administradores)",
   "/sair — deixar de receber mensagens aqui",
 ].join("\n");
 
@@ -30,6 +31,7 @@ const QUERIES: Record<string, Query> = {
   "/semana": { run: (u, _a, t) => periodReply(u, "week", t), photo: true },
   "/mes": { run: (u, _a, t) => periodReply(u, "month", t), photo: true },
   "/orcamento": { run: (u) => orcamentoReply(u) },
+  "/estado": { run: (u) => estadoReply(u) },
 };
 
 /** "/Carteira@PeculioBot XTB" → ["/carteira", "XTB"]; "/carteira_xtb" (tappable form) → ["/carteira", "xtb"]; words without "/" count in private chats. */

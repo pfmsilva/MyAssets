@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.25.0 — 2026-09-29
+- Vigilância da plataforma: cada tarefa agendada (07:00 e 21:30 UTC) verifica a outra, as cotações do Yahoo Finance (pede cotações novas), as posições sem símbolo ou com cotação parada há mais de 7 dias, os erros dos últimos envios e o bot do Telegram.
+- Se algo falhar, os administradores recebem um aviso no Telegram (ou por e-mail, se nenhum tiver o Telegram ligado): logo que o problema aparece, de novo a cada 24 horas enquanto for um erro, e uma mensagem "Resolvido" quando volta a funcionar.
+- Se nenhuma das tarefas correr, a primeira visita de um administrador (no máximo a cada 6 horas) faz a verificação e envia o aviso.
+- Uma tarefa que falhe a meio passa a deixar registo do erro em vez de desaparecer sem rasto.
+- Novo cartão "Vigilância" em Administração → Definições com o estado de cada verificação e o botão "Verificar agora"; opção para desligar os avisos. No Telegram, /estado mostra o mesmo aos administradores.
+
 ## 1.24.0 — 2026-09-29
 - Novos comandos do bot do Telegram, com a vista da conta ligada (num grupo, a do administrador):
   - /carteira: hoje e ganho desde o início de cada carteira; /carteira xtb (ou tocar em /carteira_xtb) mostra as posições com a variação do dia, o ganho e a hora das cotações.

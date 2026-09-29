@@ -28,6 +28,7 @@ export type Settings = {
   polChannel: Channel; // Telegram proof-of-life requests go to the recipients who linked it
   telegramShowTotals: boolean; // include portfolio values (not just gains) in Telegram messages
   telegramWeeklyReport: boolean; // PDF report to the administrators on Mondays
+  healthAlerts: boolean; // tell the administrators when a scheduled task, the quotes or the bot fail
 };
 
 type Channel = "email" | "telegram" | "both";
@@ -59,6 +60,7 @@ export const DEFAULTS: Settings = {
   polChannel: "email",
   telegramShowTotals: false,
   telegramWeeklyReport: false,
+  healthAlerts: true,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -92,6 +94,7 @@ export async function getSettings(): Promise<Settings> {
     polChannel: (CHANNELS.includes(map.get("polChannel") ?? "") ? map.get("polChannel") : DEFAULTS.polChannel) as Channel,
     telegramShowTotals: bool("telegramShowTotals"),
     telegramWeeklyReport: bool("telegramWeeklyReport"),
+    healthAlerts: bool("healthAlerts"),
   };
 }
 

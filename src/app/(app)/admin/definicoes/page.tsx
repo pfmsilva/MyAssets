@@ -16,6 +16,8 @@ import { getPolState } from "@/lib/proof-of-life";
 import { fmtDate } from "@/lib/format";
 import { updateSettings } from "@/app/actions/settings";
 import type { JobReport } from "@/lib/jobs";
+import { checkHealth, lastHealthCheck, openIssues } from "@/lib/health";
+import { HealthCheckButton } from "@/components/HealthCheckButton";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +51,11 @@ export default async function SettingsAdmin() {
     ? "por configurar (TELEGRAM_BOT_TOKEN)"
     : `${tgUsers.length} pessoa(s) ligada(s) · resumo por ${CH[s.dailySummaryChannel]} · alertas por ${CH[s.alertChannel]} · prova de vida por ${CH[s.polChannel]}`;
   const pol = await getPolState();
+  const [health, lastCheck, open] = await Promise.all([checkHealth(), lastHealthCheck(), openIssues()]);
+  // Yahoo and the bot are only tested when probing (cron runs, "Verificar agora"): show their last result
+  const probed = (["quotes-down", "telegram-webhook"] as const).filter((c) => open[c]).map((c) => ({ name: c === "quotes-down" ? "Yahoo Finance" : "Bot do Telegram", status: open[c].level, detail: open[c].title }));
+  const healthRows = [...health.checks, ...probed];
+  const healthBad = healthRows.filter((c) => c.status !== "ok").length;
   const [activityCount, oldest] = await Promise.all([prisma.activityLog.count(), prisma.activityLog.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } })]);
   const alertCount = s.alertEmails.split(",").map((e) => e.trim()).filter(Boolean).length;
   const alertTriggers = [s.alertStaleDays > 0 ? `ativos parados > ${s.alertStaleDays} dias` : null, s.alertMovePct > 0 ? `variação > ${s.alertMovePct} %` : null, s.alertBudget ? "orçamento" : null].filter(Boolean) as string[];
@@ -149,6 +156,11 @@ export default async function SettingsAdmin() {
               <label className="flex items-center gap-2 text-sm font-normal text-ink"><input type="checkbox" name="dailySnapshot" defaultChecked={s.dailySnapshot} /> Registar diariamente o valor em direto das carteiras (cotações Yahoo), para a evolução se preencher entre importações</label>
             </Section>
 
+            <Section title="Vigilância" summary={`${s.healthAlerts ? "avisa os administradores" : "sem avisos"} · ${healthBad ? `${healthBad} problema(s)` : "tudo a funcionar"}`}>
+              <p className="text-sm text-ink-2 sm:col-span-2">Cada tarefa agendada verifica a outra, as cotações do Yahoo e o bot do Telegram. Se algo falhar, os administradores recebem um aviso no Telegram (ou por e-mail, para os destinatários dos alertas, se nenhum tiver o Telegram ligado) e outro quando voltar a funcionar.</p>
+              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="healthAlerts" defaultChecked={s.healthAlerts} /> Avisar os administradores quando uma tarefa, as cotações ou o bot falharem</label>
+            </Section>
+
             <Section title="Prova de vida" summary={polSummary}>
               <p className="text-sm text-ink-2 sm:col-span-2">De tempos a tempos é enviado um e-mail com um link de confirmação. Basta uma das pessoas confirmar. Se ninguém confirmar dentro do prazo, os acessos à aplicação são atribuídos às pessoas indicadas e estas recebem um e-mail com a ligação e o relatório do património em anexo.</p>
               <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="polEnabled" defaultChecked={s.polEnabled} /> Ativar a prova de vida</label>
@@ -233,6 +245,20 @@ export default async function SettingsAdmin() {
             )}
           </div>
         )}
+      </Card>
+      <Card title="Vigilância">
+        <ul className="space-y-1.5 text-sm">
+          {healthRows.map((c) => (
+            <li key={c.name} className="flex gap-2">
+              <span aria-hidden>{c.status === "ok" ? "🟢" : c.status === "warn" ? "🟡" : "🔴"}</span>
+              <span><b className="font-medium">{c.name}</b> <span className={c.status === "ok" ? "text-ink-2" : c.status === "warn" ? "text-warn" : "text-bad"}>{c.detail}</span></span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <HealthCheckButton />
+          <span className="text-xs text-ink-3">{lastCheck ? `Última verificação completa: ${new Date(lastCheck.at).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })} (${lastCheck.source})${lastCheck.notified ? ` · aviso por ${lastCheck.notified}` : ""}` : "Ainda sem verificação completa."}</span>
+        </div>
       </Card>
       <Card title="Tarefa diária (Vercel Cron, 07:00 UTC)">
         <p className="mb-3 text-sm text-ink-2">Executa a retenção, os alertas, o valor diário e o backup semanal. {cronOk ? <span className="text-good">CRON_SECRET definido.</span> : <span className="text-warn">Defina CRON_SECRET no Vercel (texto aleatório) para o agendamento funcionar.</span>}{report && <> Última execução: {new Date(report.ranAt).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}.</>}</p>

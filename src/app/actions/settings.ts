@@ -8,6 +8,7 @@ import { emailLayout, sendEmail } from "@/lib/email";
 import { purgeActivity, runDailyJobs, JobReport } from "@/lib/jobs";
 import { prisma } from "@/lib/prisma";
 import { runDailySummary } from "@/lib/daily-summary";
+import { runHealthCheck } from "@/lib/health";
 
 export type SettingsState = { ok?: boolean; error?: string };
 
@@ -40,6 +41,7 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         polChannel: z.enum(["email", "telegram", "both"]),
         telegramShowTotals: z.boolean(),
         telegramWeeklyReport: z.boolean(),
+        healthAlerts: z.boolean(),
       })
       .parse({
         activityRetentionDays: fd.get("activityRetentionDays") || 0,
@@ -66,6 +68,7 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         polChannel: fd.get("polChannel") ?? "email",
         telegramShowTotals: fd.get("telegramShowTotals") === "on",
         telegramWeeklyReport: fd.get("telegramWeeklyReport") === "on",
+        healthAlerts: fd.get("healthAlerts") === "on",
       });
     await saveSettings(data);
     await logActivity(me, "settings.update", { details: data });
@@ -111,4 +114,13 @@ export async function purgeActivityNow(): Promise<number> {
   await logActivity(me, "activity.purge", { details: { deleted: n, retentionDays: s.activityRetentionDays } });
   revalidatePath("/admin/atividade");
   return n;
+}
+
+/** Runs every check now (including Yahoo and Telegram) and tells the administrators what changed. */
+export async function checkHealthNow() {
+  const me = await assertRole("ADMIN");
+  const r = await runHealthCheck({ probe: true, source: `pedido por ${me.name ?? me.email}` });
+  await logActivity(me, "health.check", { details: { issues: r.issues.map((i) => i.title), notified: r.notified } });
+  revalidatePath("/admin/definicoes");
+  return { issues: r.issues.length, notified: r.notified };
 }

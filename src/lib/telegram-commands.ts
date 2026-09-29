@@ -5,6 +5,7 @@ import { getLiveValuations, resolveSymbol, type LivePosition, type LiveValuation
 import { getDailyPnl, LIVE_TYPES, type Grouping } from "./daily-pnl";
 import { getBudgetOverview } from "./budget";
 import { summaryChartsPng } from "./chart-png";
+import { checkHealth } from "./health";
 import { appUrl } from "./email";
 import { escHtml } from "./telegram";
 import { fmtEur, fmtNum, fmtPct } from "./format";
@@ -256,4 +257,20 @@ export async function orcamentoReply(user: Who): Promise<Reply> {
     elapsed < 1 && b.totals.spent > 0 ? `Ao ritmo atual, o mês fecha em cerca de ${fmtEur(b.totals.spent / Math.max(elapsed, 0.03), 0)}.` : null,
   );
   return { html: lines.filter((l) => l !== null).join("\n"), button: appUrl() ? { text: "Abrir o orçamento", url: `${appUrl()}/despesas#orcamento` } : undefined };
+}
+
+// ---------- /estado ----------
+
+export async function estadoReply(user: Who): Promise<Reply> {
+  if (user.role !== "ADMIN") return { html: "O estado da plataforma só está disponível para administradores." };
+  const r = await checkHealth({ probe: true });
+  const icon = (st: string) => (st === "ok" ? "🟢" : st === "warn" ? "🟡" : "🔴");
+  return {
+    html: [
+      `<b>Pecúlio · estado</b> ${r.issues.length ? `(${r.issues.length} problema(s))` : "— tudo a funcionar"}`,
+      "",
+      ...r.checks.map((c) => `${icon(c.status)} <b>${escHtml(c.name)}</b>\n${escHtml(c.detail)}`),
+    ].join("\n"),
+    button: appUrl() ? { text: "Abrir Definições", url: `${appUrl()}/admin/definicoes` } : undefined,
+  };
 }

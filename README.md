@@ -43,7 +43,10 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   vida, se seguem por e-mail, por Telegram ou pelos dois, e se o relatório PDF segue aos administradores à
   segunda-feira. Por omissão o Telegram mostra só ganhos e perdas, não o valor das carteiras.
   Comandos do bot: /resumo (resumo do momento), /carteira [nome], /ativo <ticker|nome|ISIN>, /semana, /mes,
-  /orcamento, /ajuda e /sair.
+  /orcamento, /estado (administradores), /ajuda e /sair.
+- **Vigilância** (Administração → Definições): as duas tarefas agendadas verificam-se uma à outra, testam as
+  cotações do Yahoo e o bot do Telegram, e avisam os administradores (Telegram ou e-mail) quando algo falha e
+  quando volta a funcionar.
   Requer `TELEGRAM_BOT_TOKEN` e `APP_URL`: criar o bot com @BotFather (`/newbot`), copiar o token para o Vercel e
   fazer redeploy; o webhook (`/api/telegram/webhook`) é configurado sozinho na primeira ligação.
 - **Alertas por e-mail, backups e tarefa diária**: Administração → Definições (retenção do registo de atividade, destinatários e limiares dos alertas, backup semanal, valor diário das carteiras); exportação Excel e backup JSON.

@@ -81,7 +81,7 @@ export async function ensureWebhook(): Promise<{ ok: boolean; error?: string }> 
 }
 
 /** Bump when the commands change, so the bot's menu is updated once. */
-const COMMANDS_VERSION = "2";
+const COMMANDS_VERSION = "3";
 
 /** The "/" menu of the bot in Telegram (set once per version). */
 export async function ensureCommands() {
@@ -94,6 +94,7 @@ export async function ensureCommands() {
     { command: "semana", description: "Ganhos das últimas 8 semanas" },
     { command: "mes", description: "Ganhos dos últimos 12 meses" },
     { command: "orcamento", description: "Gastos do mês face ao orçamento" },
+    { command: "estado", description: "Está tudo a funcionar? (administradores)" },
     { command: "ajuda", description: "O que pode perguntar ao bot" },
     { command: "sair", description: "Deixar de receber mensagens do Pecúlio aqui" },
   ];

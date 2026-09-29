@@ -7,12 +7,16 @@ import { hasRole, ROLE_LABEL } from "@/lib/access";
 import { versionLabel, versionTitle } from "@/lib/version";
 import { getSettings } from "@/lib/settings";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { after } from "next/server";
+import { healthCheckIfDue } from "@/lib/health";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   const user = session.user;
   const settings = await getSettings();
+  // if neither scheduled task runs, an administrator's visit still notices it (at most every 6 hours)
+  if (user.role === "ADMIN") after(() => healthCheckIfDue().catch(() => undefined));
   const items: NavItem[] = NAV_GROUPS.filter((g) => !g.min || hasRole(user.role, g.min)).map((g) => ({ href: g.href, label: g.label, icon: g.icon, short: g.short }));
   const mobileItems = items.filter((i) => ["/", "/ativos", "/despesas", "/rentabilidade"].includes(i.href));
   const more = items.filter((i) => !mobileItems.includes(i));
