@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.22.2 — 2026-09-29
+- Ligar Telegram: depois de carregar em Iniciar no Telegram, "A minha conta" passa a mostrar sozinha que ficou ligado (verifica a cada 3 segundos); o botão "Atualizar" passa a "Verificar agora" e, se ainda não estiver ligado, diz porquê segundo o próprio Telegram (por exemplo, a aplicação a recusar as mensagens por causa da proteção de acesso do Vercel, ou um endereço errado em APP_URL).
+- O endereço do webhook é corrigido quando APP_URL tem "/" no fim ou não tem "https://", casos em que o Telegram não conseguia entregar as mensagens.
+
 ## 1.22.1 — 2026-09-29
 - Telegram: o token do bot é aceite mesmo quando colado no Vercel com espaços, aspas, quebras de linha, o prefixo "bot" ou a mensagem inteira do @BotFather.
 - Quando o Telegram recusa o token ("Unauthorized"), a mensagem passa a explicar como o voltar a copiar.

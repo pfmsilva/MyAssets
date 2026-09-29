@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     await logActivity({ id: user.id, email: user.email, name: user.name }, "telegram.link", { details: { chat: chatName(msg.chat), group: msg.chat.type !== "private" } });
     await sendTelegramMessage(
       chatId,
-      `✅ ${msg.chat.type === "private" ? "Esta conversa" : "Este grupo"} está ligado ao Pecúlio de <b>${escHtml(user.name ?? user.email)}</b>.\nVai receber aqui o resumo do dia e os alertas escolhidos em Definições. Para deixar de receber, envie /sair.`,
+      `✅ ${msg.chat.type === "private" ? "Esta conversa está ligada" : "Este grupo está ligado"} ao Pecúlio de <b>${escHtml(user.name ?? user.email)}</b>.\nVai receber aqui o resumo do dia e os alertas escolhidos em Definições. Para deixar de receber, envie /sair.`,
       { buttonText: "Abrir o Pecúlio", buttonUrl: appUrl() || undefined },
     );
     return Response.json({ ok: true });

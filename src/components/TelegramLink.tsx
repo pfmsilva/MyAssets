@@ -1,22 +1,48 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { telegramLinks, telegramSummaryNow, testTelegram, unlinkTelegram } from "@/app/actions/telegram";
+import { telegramLinks, telegramStatus, telegramSummaryNow, testTelegram, unlinkTelegram } from "@/app/actions/telegram";
 
 type Msg = { ok: boolean; text: string } | null;
 
 /** Link / unlink the signed-in user's Telegram, plus test buttons. */
-export function TelegramLink({ linked, chatName }: { linked: boolean; chatName: string | null }) {
+export function TelegramLink({ linked, chatName, linkedAt }: { linked: boolean; chatName: string | null; linkedAt: string | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<Msg>(null);
   const [links, setLinks] = useState<{ privateUrl: string; groupUrl: string; username: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const since = useRef<string | null>(null);
   const run = (fn: () => Promise<{ ok: boolean; message: string }>) =>
     start(async () => {
       const r = await fn();
       setMsg({ ok: r.ok, text: r.message });
       router.refresh();
     });
+
+  /** Asks the app whether the bot has linked this account since the links were shown. */
+  const check = async (manual: boolean) => {
+    const s = await telegramStatus();
+    if (s.linkedAt !== null && s.linkedAt !== since.current) {
+      setLinks(null);
+      setMsg({ ok: true, text: `Ligado a ${s.chatName ?? "Telegram"}.` });
+      router.refresh();
+      return true;
+    }
+    if (manual) setMsg(s.problem ? { ok: false, text: `Ainda não ficou ligado: ${s.problem}` } : { ok: false, text: "Ainda não ficou ligado. No Telegram, abra o bot pelo botão acima e carregue em Iniciar (ou envie a mensagem /start que aparece)." });
+    return false;
+  };
+
+  // while the links are open, notice the link as soon as the bot confirms it
+  useEffect(() => {
+    if (!links) return;
+    let tries = 0;
+    const t = setInterval(async () => {
+      if (++tries > 60 || (await check(false))) clearInterval(t);
+    }, 3000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [links]);
 
   return (
     <div className="space-y-3 text-sm">
@@ -33,9 +59,12 @@ export function TelegramLink({ linked, chatName }: { linked: boolean; chatName: 
           disabled={pending}
           onClick={() =>
             start(async () => {
+              setMsg(null);
               const r = await telegramLinks();
-              if (r.ok) setLinks(r);
-              else setMsg({ ok: false, text: r.message });
+              if (r.ok) {
+                since.current = linked ? linkedAt : null;
+                setLinks(r);
+              } else setMsg({ ok: false, text: r.message });
             })
           }
         >
@@ -48,12 +77,26 @@ export function TelegramLink({ linked, chatName }: { linked: boolean; chatName: 
             <a className="btn btn-primary" href={links.privateUrl} target="_blank" rel="noopener">Abrir no Telegram</a>
             <a className="btn" href={links.groupUrl} target="_blank" rel="noopener">Ligar a um grupo da família</a>
           </div>
-          <p className="text-xs text-ink-3">2. O bot responde &laquo;Ligado&raquo;. Depois carregue em <b>Atualizar</b> aqui. O link é válido 24 horas e só serve para a sua conta.</p>
-          <button type="button" className="btn btn-sm" onClick={() => router.refresh()}>Atualizar</button>
+          <p className="text-xs text-ink-3">2. O bot responde &laquo;Ligado&raquo; e esta página atualiza sozinha. O link é válido 24 horas e só serve para a sua conta.</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-sm"
+              disabled={checking}
+              onClick={async () => {
+                setChecking(true);
+                await check(true);
+                setChecking(false);
+              }}
+            >
+              {checking ? "A verificar…" : "Verificar agora"}
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => { setLinks(null); setMsg(null); }}>Cancelar</button>
+          </div>
         </div>
       )}
 
-      {linked && (
+      {linked && !links && (
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-sm" disabled={pending} onClick={() => run(testTelegram)}>Enviar mensagem de teste</button>
           <button type="button" className="btn btn-sm" disabled={pending} onClick={() => run(telegramSummaryNow)}>Enviar o resumo de hoje</button>

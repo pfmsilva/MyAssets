@@ -63,14 +63,38 @@ export function webhookSecretOk(header: string | null) {
 }
 
 /** Points the bot at this app (idempotent); done before every link so it never gets out of date. */
+/** Address Telegram calls; a trailing "/" or a missing "https://" in APP_URL would make it fail. */
+function webhookUrl() {
+  const base = appUrl().trim().replace(/\/+$/, "");
+  if (!base) return null;
+  return `${/^https?:\/\//i.test(base) ? base.replace(/^http:/i, "https:") : `https://${base}`}/api/telegram/webhook`;
+}
+
 export async function ensureWebhook(): Promise<{ ok: boolean; error?: string }> {
-  const base = appUrl();
-  if (!base) return { ok: false, error: "Defina APP_URL (endereço público da aplicação) no Vercel." };
-  const url = `${base}/api/telegram/webhook`;
+  const url = webhookUrl();
+  if (!url) return { ok: false, error: "Defina APP_URL (endereço público da aplicação) no Vercel." };
   const info = await call<{ url: string }>("getWebhookInfo");
   if (info.ok && info.result.url === url) return { ok: true };
-  const r = await call<boolean>("setWebhook", { url, secret_token: webhookSecret(), allowed_updates: ["message", "my_chat_member"] });
+  const r = await call<boolean>("setWebhook", { url, secret_token: webhookSecret(), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
   return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
+/** Why the bot's messages may not be reaching the app, from Telegram's own view of the webhook. */
+export async function webhookProblem(): Promise<string | null> {
+  const info = await call<{ url: string; pending_update_count: number; last_error_date?: number; last_error_message?: string }>("getWebhookInfo");
+  if (!info.ok) return info.error;
+  const expected = webhookUrl();
+  if (info.result.url !== expected) return `o bot está a enviar para "${info.result.url || "nenhum endereço"}" em vez de ${expected}.`;
+  const err = info.result.last_error_message;
+  if (err && info.result.last_error_date && Date.now() / 1000 - info.result.last_error_date < 3600) {
+    const hint = /401|403/.test(err)
+      ? " A aplicação recusou o Telegram: se o Vercel tiver a proteção de acesso (Deployment Protection / Vercel Authentication) ativa para este endereço, desative-a para a produção ou use em APP_URL o domínio de produção."
+      : /30\d/.test(err)
+        ? " O endereço redireciona: confirme que APP_URL é exatamente o domínio de produção, com https:// e sem / no fim."
+        : "";
+    return `o Telegram não consegue entregar as mensagens à aplicação (${err}).${hint}`;
+  }
+  return null;
 }
 
 // ---------- linking a user to a chat ----------

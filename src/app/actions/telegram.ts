@@ -5,7 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/email";
 import { runDailySummary } from "@/lib/daily-summary";
-import { ensureWebhook, linkLinks, sendTelegramMessage, telegramConfigured } from "@/lib/telegram";
+import { ensureWebhook, linkLinks, sendTelegramMessage, telegramConfigured, webhookProblem } from "@/lib/telegram";
 
 type Result = { ok: boolean; message: string };
 
@@ -18,6 +18,14 @@ export async function telegramLinks(): Promise<{ ok: true; privateUrl: string; g
   const links = await linkLinks(me.id);
   if (!links) return { ok: false, message: "Não foi possível contactar o bot. Confirme o TELEGRAM_BOT_TOKEN." };
   return { ok: true, ...links };
+}
+
+/** Whether the bot has already linked the signed-in user; if not, what Telegram reports as wrong. */
+export async function telegramStatus(): Promise<{ linkedAt: string | null; chatName: string | null; problem: string | null }> {
+  const me = await assertRole("VIEWER");
+  const u = await prisma.user.findUniqueOrThrow({ where: { id: me.id }, select: { telegramChatId: true, telegramName: true, telegramLinkedAt: true } });
+  const linkedAt = u.telegramChatId ? (u.telegramLinkedAt?.toISOString() ?? "") : null;
+  return { linkedAt, chatName: u.telegramName, problem: linkedAt === null ? await webhookProblem() : null };
 }
 
 export async function unlinkTelegram(): Promise<Result> {

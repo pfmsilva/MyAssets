@@ -38,7 +38,7 @@ export default async function AccountPage() {
         <Card title="Telegram">
           {telegramConfigured() ? (
             <>
-              <TelegramLink linked={!!u.telegramChatId} chatName={u.telegramName} />
+              <TelegramLink linked={!!u.telegramChatId} chatName={u.telegramName} linkedAt={u.telegramChatId ? (u.telegramLinkedAt?.toISOString() ?? "") : null} />
               {u.telegramLinkedAt && <p className="mt-2 text-xs text-ink-3">Ligado desde {fmtDate(u.telegramLinkedAt)}.</p>}
               <p className="mt-3 text-xs text-ink-3">
                 {whatYouGet.length ? `Com as definições atuais recebe no Telegram: ${whatYouGet.join("; ")}.` : "Com as definições atuais ainda não é enviado nada por Telegram; o administrador escolhe os canais em Administração → Definições."}{" "}
