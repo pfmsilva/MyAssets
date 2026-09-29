@@ -2,7 +2,8 @@ import { Role } from "@prisma/client";
 import { prisma } from "./prisma";
 import { getScope } from "./scope";
 import { getDailyPnl } from "./daily-pnl";
-import { appUrl, emailConfigured, emailLayout, sendEmail } from "./email";
+import { appUrl, emailConfigured, emailLayout, sendEmail, type Attachment } from "./email";
+import { lineChartPng } from "./chart-png";
 import { getSettings } from "./settings";
 import { fmtEur } from "./format";
 
@@ -42,7 +43,22 @@ function barsHtml(points: { label: string; sub: string; value: number | null }[]
 </table>`;
 }
 
-export type SummaryContent = { subject: string; html: string; text: string };
+/** Dates and values under the line chart, one column per point (each point is centred in its column). */
+function labelsHtml(points: { label: string; sub: string; value: number | null }[], color: (v: number) => string) {
+  const cellW = Math.floor(100 / points.length);
+  const cells = points
+    .map(
+      (p) => `<td width="${cellW}%" style="text-align:center;padding-top:4px">
+      <div style="font-size:10px;color:${p.value === null ? "#c9c8c3" : color(p.value)};white-space:nowrap">${p.value === null ? "—" : compact(p.value)}</div>
+      <div style="font-size:11px;color:#52514e">${p.label}</div><div style="font-size:10px;color:#8a8985">${p.sub}</div></td>`,
+    )
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;max-width:556px"><tr>${cells}</tr></table>`;
+}
+
+const CUMULATIVE_CID = "ganho-acumulado";
+
+export type SummaryContent = { subject: string; html: string; text: string; attachments: Attachment[] };
 
 /** The end-of-day e-mail for one user: last 7 days of the quoted portfolios, day by day. */
 export async function buildDailySummary(user: { id: string; role: Role; name?: string | null }): Promise<SummaryContent | null> {
@@ -81,7 +97,8 @@ ${kpi("Hoje", signed(today), tone(today))}${kpi("Últimos 7 dias", signed(week),
 <h3 style="font-size:14px;margin:18px 0 8px">Variação por dia</h3>
 ${barsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.pnl })), (v) => (v >= 0 ? "#1baf7a" : "#e34948"))}
 <h3 style="font-size:14px;margin:22px 0 8px">Ganho acumulado nos 7 dias</h3>
-${barsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.cum })), (v) => (v >= 0 ? "#2a78d6" : "#eb6834"))}
+<img src="cid:${CUMULATIVE_CID}" width="556" alt="Ganho acumulado: ${days.map((p) => `${p.label} ${compact(p.cum)}`).join(", ")}" style="display:block;width:100%;max-width:556px;height:auto;border:0" />
+${labelsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.pnl === null ? null : p.cum })), (v) => tone(v))}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:20px;font-size:13px">
   <tr style="color:#8a8985;font-size:11px;text-transform:uppercase"><td style="padding:4px 0">Dia</td><td align="right" style="padding-left:6px">Var.</td><td align="right" style="padding-left:6px">Acum.</td><td align="right" style="padding-left:6px">Carteiras</td></tr>
   ${[...days].reverse().map((p) => `<tr style="border-top:1px solid #e4e3df"><td style="padding:5px 0;white-space:nowrap">${p.weekday} ${p.label}${p.live ? " <span style=\"color:#8a8985;font-size:11px\">(direto)</span>" : ""}</td>${p.pnl === null ? `<td align="right" style="color:#8a8985;padding-left:6px">—</td><td align="right" style="color:#8a8985;padding-left:6px">—</td>` : `<td align="right" style="color:${tone(p.pnl)};padding-left:6px;white-space:nowrap">${signed(p.pnl)}</td><td align="right" style="color:${tone(p.cum)};padding-left:6px;white-space:nowrap">${signed(p.cum)}</td>`}<td align="right" style="padding-left:6px;white-space:nowrap">${p.value !== null ? fmtEur(p.value, 0) : "—"}</td></tr>`).join("")}
@@ -101,7 +118,15 @@ ${barsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.cum })), 
     "",
     `${url}/rentabilidade?dias=7&cot=1`,
   ].join("\n");
-  return { subject: `Pecúlio · hoje ${signed(today)} · 7 dias ${signed(week)}`, html: emailLayout("Resumo do dia", body, url), text };
+  // the cumulative line is an image embedded in the message (e-mail clients do not draw SVG);
+  // days without a record keep the line flat, as in the app
+  const chart = lineChartPng(days.map((p) => p.cum), { width: 556, height: 150 });
+  return {
+    subject: `Pecúlio · hoje ${signed(today)} · 7 dias ${signed(week)}`,
+    html: emailLayout("Resumo do dia", body, url),
+    text,
+    attachments: [{ filename: "ganho-acumulado.png", content: chart, contentId: CUMULATIVE_CID }],
+  };
 }
 
 export type SummaryReport = { ranAt: string; sent: number; skipped: string[]; errors: string[] };
@@ -132,7 +157,7 @@ export async function runDailySummary(opts: { force?: boolean; onlyUserId?: stri
         report.skipped.push(`${u.email}: sem carteiras com cotação`);
         continue;
       }
-      const r = await sendEmail({ to: [u.email], subject: content.subject, html: content.html, text: content.text });
+      const r = await sendEmail({ to: [u.email], subject: content.subject, html: content.html, text: content.text, attachments: content.attachments });
       if (!r.ok) {
         report.errors.push(`${u.email}: ${r.error}`);
         continue;

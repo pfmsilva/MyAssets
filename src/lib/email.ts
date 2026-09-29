@@ -1,5 +1,6 @@
 /** Sends e-mail through Resend (https://resend.com). Needs RESEND_API_KEY and ALERTS_FROM. */
-export type Attachment = { filename: string; content: Buffer };
+/** `contentId` embeds the file in the body (an image referenced as `cid:<contentId>`). */
+export type Attachment = { filename: string; content: Buffer; contentId?: string };
 
 /** Public URL of the app, used in the links inside e-mails. */
 export function appUrl() {
@@ -23,7 +24,7 @@ export async function sendEmail(opts: { to: string[]; subject: string; html: str
         subject: opts.subject,
         html: opts.html,
         text: opts.text,
-        attachments: opts.attachments?.map((a) => ({ filename: a.filename, content: a.content.toString("base64") })),
+        attachments: opts.attachments?.map((a) => ({ filename: a.filename, content: a.content.toString("base64"), ...(a.contentId ? { content_id: a.contentId } : {}) })),
       }),
     });
     const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };

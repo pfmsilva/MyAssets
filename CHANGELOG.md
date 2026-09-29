@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 1.21.1 — 2026-09-29
+- Resumo diário por e-mail: o ganho acumulado dos 7 dias passa a ser um gráfico de linha com área sombreada, igual ao da secção de Investimentos (verde se positivo, vermelho se negativo), embutido no e-mail como imagem; as datas e os valores ficam por baixo, alinhados com cada ponto.
+
 ## 1.21.0 — 2026-09-29
 - Novo resumo diário por e-mail no fim do dia (cerca das 22h30 de Lisboa, depois do fecho dos mercados americanos): variação por dia e ganho acumulado dos últimos 7 dias das carteiras com cotação, em gráficos de barras, com a tabela dia a dia, o valor em direto e o ganho de hoje de cada carteira.
 - Cada utilizador recebe só as carteiras que pode ver na aplicação. Em Administração → Definições escolhe-se enviar a ninguém, só aos administradores ou a todos, e se também ao fim de semana; o botão "Enviar-me o resumo de hoje" mostra como fica.
