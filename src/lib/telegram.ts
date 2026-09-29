@@ -76,7 +76,24 @@ export async function ensureWebhook(): Promise<{ ok: boolean; error?: string }> 
   const info = await call<{ url: string }>("getWebhookInfo");
   if (info.ok && info.result.url === url) return { ok: true };
   const r = await call<boolean>("setWebhook", { url, secret_token: webhookSecret(), allowed_updates: ["message", "my_chat_member"], drop_pending_updates: false });
+  if (r.ok) await ensureCommands();
   return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
+/** Bump when the commands change, so the bot's menu is updated once. */
+const COMMANDS_VERSION = "1";
+
+/** The "/" menu of the bot in Telegram (set once per version). */
+export async function ensureCommands() {
+  const done = await prisma.setting.findUnique({ where: { key: "telegramCommands" } });
+  if (done?.value === COMMANDS_VERSION) return;
+  const commands = [
+    { command: "resumo", description: "Resumo do momento: gráficos e ganho de hoje" },
+    { command: "sair", description: "Deixar de receber mensagens do Pecúlio aqui" },
+  ];
+  const r = await call<boolean>("setMyCommands", { commands });
+  await call<boolean>("setMyCommands", { commands, scope: { type: "all_group_chats" } });
+  if (r.ok) await prisma.setting.upsert({ where: { key: "telegramCommands" }, create: { key: "telegramCommands", value: COMMANDS_VERSION }, update: { value: COMMANDS_VERSION } });
 }
 
 /** Why the bot's messages may not be reaching the app, from Telegram's own view of the webhook. */
@@ -135,6 +152,11 @@ export async function sendTelegramMessage(chatId: string, html: string, opts: { 
     link_preview_options: { is_disabled: true },
     ...(opts.buttonUrl ? { reply_markup: { inline_keyboard: [[{ text: opts.buttonText ?? "Abrir", url: opts.buttonUrl }]] } } : {}),
   });
+}
+
+/** "a enviar foto…" at the top of the chat while something slow is prepared. */
+export async function sendTelegramAction(chatId: string, action: "typing" | "upload_photo") {
+  return call("sendChatAction", { chat_id: chatId, action });
 }
 
 /** Several images in one message (an album); the caption goes with the first one. */

@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.23.0 — 2026-09-29
+- Telegram: enviar /resumo ao bot (ou escolher no menu "/") devolve em poucos segundos o resumo do momento, com os gráficos dos últimos 7 dias e o ganho de hoje por carteira às cotações atuais. Funciona na conversa privada e no grupo da família ligado; num grupo ligado por várias pessoas mostra a vista do administrador.
+- Pedidos repetidos em menos de 30 segundos são ignorados, e os resumos pedidos (no Telegram ou pelos botões da aplicação) já não contam como o resumo automático do fim do dia, que continua a chegar.
+- O bot passa a mostrar o menu de comandos (/resumo, /sair) e a responder a /ajuda.
+
 ## 1.22.2 — 2026-09-29
 - Ligar Telegram: depois de carregar em Iniciar no Telegram, "A minha conta" passa a mostrar sozinha que ficou ligado (verifica a cada 3 segundos); o botão "Atualizar" passa a "Verificar agora" e, se ainda não estiver ligado, diz porquê segundo o próprio Telegram (por exemplo, a aplicação a recusar as mensagens por causa da proteção de acesso do Vercel, ou um endereço errado em APP_URL).
 - O endereço do webhook é corrigido quando APP_URL tem "/" no fim ou não tem "https://", casos em que o Telegram não conseguia entregar as mensagens.

@@ -54,6 +54,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "summary.test": "Resumo diário de teste",
   "telegram.link": "Telegram ligado",
   "telegram.unlink": "Telegram desligado",
+  "telegram.ask": "Resumo pedido no Telegram",
   "jobs.run": "Tarefas diárias executadas",
   "activity.purge": "Registo de atividade limpo",
   "export.excel": "Exportação Excel",

@@ -154,7 +154,8 @@ export type SummaryReport = { ranAt: string; sent: number; telegram?: number; sk
 
 /**
  * Sends the end-of-day summary to the chosen users, once a day each, by e-mail and/or Telegram.
- * `channel` overrides the setting (the preview buttons use it).
+ * `channel` overrides the setting (the preview buttons use it). A forced send (buttons, /resumo
+ * in Telegram) is extra and does not count as the day's automatic summary.
  */
 export async function runDailySummary(opts: { force?: boolean; onlyUserId?: string; channel?: Channel } = {}): Promise<SummaryReport> {
   const report: SummaryReport = { ranAt: new Date().toISOString(), sent: 0, telegram: 0, skipped: [], errors: [] };
@@ -194,14 +195,14 @@ export async function runDailySummary(opts: { force?: boolean; onlyUserId?: stri
       if (needMail) {
         const r = await sendEmail({ to: [u.email], subject: content.subject, html: content.html, text: content.text, attachments: content.attachments });
         if (r.ok) {
-          await prisma.alertSent.upsert({ where: { key: mailKey }, create: { key: mailKey }, update: { sentAt: new Date() } });
+          if (!opts.force) await prisma.alertSent.upsert({ where: { key: mailKey }, create: { key: mailKey }, update: { sentAt: new Date() } });
           report.sent++;
         } else report.errors.push(`${u.email}: ${r.error}`);
       }
       if (needTg && tgKey) {
         const r = await sendTelegramPhotos(u.telegramChatId!, [{ png: content.telegram.png, name: "resumo.png" }], content.telegram.caption);
         if (r.ok) {
-          await prisma.alertSent.upsert({ where: { key: tgKey }, create: { key: tgKey }, update: { sentAt: new Date() } });
+          if (!opts.force) await prisma.alertSent.upsert({ where: { key: tgKey }, create: { key: tgKey }, update: { sentAt: new Date() } });
           report.telegram = (report.telegram ?? 0) + 1;
         } else report.errors.push(`${u.email} (Telegram): ${r.error}`);
       } else if (tg && !u.telegramChatId && opts.onlyUserId) report.skipped.push("Telegram ainda não ligado nesta conta");

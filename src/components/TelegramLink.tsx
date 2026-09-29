@@ -47,7 +47,7 @@ export function TelegramLink({ linked, chatName, linkedAt }: { linked: boolean; 
   return (
     <div className="space-y-3 text-sm">
       {linked ? (
-        <p className="text-good">✓ Ligado a <b>{chatName}</b>. O resumo do dia e os alertas escolhidos em Definições chegam aí.</p>
+        <p className="text-good">✓ Ligado a <b>{chatName}</b>. O resumo do dia e os alertas escolhidos em Definições chegam aí; a qualquer hora, envie <b>/resumo</b> ao bot para receber o resumo do momento.</p>
       ) : (
         <p className="text-ink-2">Ainda não está ligado. Ao ligar, o bot do Pecúlio passa a enviar-lhe mensagens no Telegram.</p>
       )}
