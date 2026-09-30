@@ -6,6 +6,9 @@ import { telegramConfigured, viaTelegram } from "@/lib/telegram";
 import { fmtDate } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui";
 import { TelegramLink } from "@/components/TelegramLink";
+import { SummarySlots } from "@/components/SummarySlots";
+import { activeSlots, readSlots } from "@/lib/summary-slots";
+import { emailConfigured } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +16,14 @@ export default async function AccountPage() {
   const me = await requireUser();
   logView(me, "A minha conta");
   const [u, s] = await Promise.all([
-    prisma.user.findUniqueOrThrow({ where: { id: me.id }, select: { email: true, name: true, role: true, telegramChatId: true, telegramName: true, telegramLinkedAt: true, visibleMembers: { select: { name: true } } } }),
+    prisma.user.findUniqueOrThrow({ where: { id: me.id }, select: { email: true, name: true, role: true, telegramChatId: true, telegramName: true, telegramLinkedAt: true, summarySlots: true, visibleMembers: { select: { name: true } } } }),
     getSettings(),
   ]);
+  const slots = readSlots(u.summarySlots);
+  const ownTimes = activeSlots(slots).length > 0;
   const whatYouGet = [
-    s.dailySummary !== "off" && viaTelegram(s.dailySummaryChannel) && (s.dailySummary === "all" || u.role === "ADMIN") ? "o resumo do fim do dia com os gráficos" : null,
+    ownTimes && activeSlots(slots).some((x) => x.telegram) ? `o resumo às ${activeSlots(slots).filter((x) => x.telegram).map((x) => x.time).join(", ")}` : null,
+    !ownTimes && s.dailySummary !== "off" && viaTelegram(s.dailySummaryChannel) && (s.dailySummary === "all" || u.role === "ADMIN") ? "o resumo do fim do dia com os gráficos" : null,
     viaTelegram(s.alertChannel) && u.role === "ADMIN" ? "os alertas (orçamento, variações, ativos por atualizar)" : null,
     viaTelegram(s.polChannel) && s.polEnabled && s.polEmails.toLowerCase().includes(u.email.toLowerCase()) ? "o pedido de prova de vida" : null,
     s.telegramWeeklyReport && u.role === "ADMIN" ? "o relatório PDF à segunda-feira" : null,
@@ -48,6 +54,13 @@ export default async function AccountPage() {
           ) : (
             <p className="text-sm text-ink-2">O Telegram ainda não está configurado. O administrador tem de criar o bot no @BotFather e definir <code>TELEGRAM_BOT_TOKEN</code> no Vercel.</p>
           )}
+        </Card>
+        <Card title="Horários do resumo" className="lg:col-span-2">
+          <p className="mb-3 text-sm text-ink-2">
+            Escolha até quatro horas por dia para receber o resumo das carteiras (gráficos dos últimos 7 dias e o ganho de hoje às cotações do momento) e, em cada uma, se chega por e-mail, por Telegram ou pelos dois.
+            {ownTimes ? " Com horários próprios deixa de receber o resumo geral do fim do dia." : s.dailySummary !== "off" && (s.dailySummary === "all" || u.role === "ADMIN") ? " Enquanto não ativar nenhum, recebe o resumo geral do fim do dia (~22h30)." : ""}
+          </p>
+          <SummarySlots initial={slots} telegramLinked={!!u.telegramChatId} telegramReady={telegramConfigured()} emailReady={emailConfigured()} />
         </Card>
       </div>
     </>

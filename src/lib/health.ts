@@ -6,6 +6,7 @@ import { getLiveValuations, getQuotes } from "./quotes";
 import { LIVE_TYPES } from "./daily-pnl";
 import type { JobReport } from "./jobs";
 import type { SummaryReport } from "./daily-summary";
+import { scheduleStatus } from "./summary-schedule";
 
 /**
  * Watch over the automatic work: the two Vercel Cron tasks, the Yahoo Finance quotes and the
@@ -131,6 +132,19 @@ export async function checkHealth(opts: { probe?: boolean } = {}): Promise<Healt
           ? { code: "quotes-stuck", level: "warn", title: `${stuck.length} cotação(ões) paradas há mais de 7 dias`, detail: `${list(stuck)}. O símbolo pode ter mudado (Administração → Cotações).` }
           : null,
       `${[...live.values()].reduce((s, v) => s + v.quoted, 0)} posições com cotação`,
+    );
+  }
+
+  // ---- personal summary times: need a wake-up every few minutes besides the two daily crons ----
+  const sched = await scheduleStatus();
+  if (sched.people) {
+    const ext = sched.externalAt ? new Date(sched.externalAt) : null;
+    add(
+      "Resumos agendados",
+      !ext || now - ext.getTime() > 3 * H
+        ? { code: "schedule-wakeup", level: "warn", title: `${sched.people} pessoa(s) com horários do resumo, mas sem despertador${ext ? ` desde ${when(ext)}` : ""}`, detail: "Sem ele só saem os horários perto das 08:00 e das 22:30 ou quando alguém abre a aplicação. Configure em cron-job.org (grátis) uma chamada a cada 5–15 minutos a /api/cron/schedule com o cabeçalho Authorization: Bearer CRON_SECRET (Administração → Definições → Resumo diário)." }
+        : null,
+      `${sched.people} pessoa(s) com horários · despertador ${ago(ext!)}`,
     );
   }
 

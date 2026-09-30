@@ -44,6 +44,9 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   segunda-feira. Por omissão o Telegram mostra só ganhos e perdas, não o valor das carteiras.
   Comandos do bot: /resumo (resumo do momento), /carteira [nome], /ativo <ticker|nome|ISIN>, /semana, /mes,
   /orcamento, /estado (administradores), /ajuda e /sair.
+- **Horários do resumo** (A minha conta): até quatro horas por dia por pessoa, cada uma por e-mail e/ou Telegram.
+  Precisa de um despertador externo a chamar `GET /api/cron/schedule` a cada 5–15 minutos com
+  `Authorization: Bearer <CRON_SECRET>` (ex.: cron-job.org); sem ele só saem as horas perto das tarefas diárias.
 - **Vigilância** (Administração → Definições): as duas tarefas agendadas verificam-se uma à outra, testam as
   cotações do Yahoo e o bot do Telegram, e avisam os administradores (Telegram ou e-mail) quando algo falha e
   quando volta a funcionar.

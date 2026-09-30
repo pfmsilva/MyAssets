@@ -7,6 +7,7 @@ import { lineChartPng, summaryChartsPng } from "./chart-png";
 import { escHtml, sendTelegramPhotos, telegramConfigured, viaEmail, viaTelegram, type Channel } from "./telegram";
 import { getSettings } from "./settings";
 import { fmtEur } from "./format";
+import { activeSlots, readSlots } from "./summary-slots";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const signed = (v: number, digits = 0) => `${v > 0 ? "+" : v < 0 ? "-" : ""}${fmtEur(Math.abs(v), digits)}`;
@@ -173,10 +174,15 @@ export async function runDailySummary(opts: { force?: boolean; onlyUserId?: stri
   const users = await prisma.user.findMany({
     where: opts.onlyUserId ? { id: opts.onlyUserId } : s.dailySummary === "admins" ? { role: "ADMIN" } : {},
     orderBy: [{ role: "asc" }, { createdAt: "asc" }], // administrators first: a shared family group gets their view
-    select: { id: true, email: true, name: true, role: true, telegramChatId: true },
+    select: { id: true, email: true, name: true, role: true, telegramChatId: true, summarySlots: true },
   });
   const day = new Date().toISOString().slice(0, 10);
   for (const u of users) {
+    // whoever chose their own times gets the summary at those times instead
+    if (!opts.onlyUserId && activeSlots(readSlots(u.summarySlots)).length) {
+      report.skipped.push(`${u.email}: tem horários próprios`);
+      continue;
+    }
     const mailKey = `summary:${u.id}:${day}`;
     const tgKey = u.telegramChatId ? `summary-tg:${u.telegramChatId}:${day}` : null;
     const needMail = mail && (opts.force || !(await prisma.alertSent.findUnique({ where: { key: mailKey } })));

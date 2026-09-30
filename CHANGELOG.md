@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.26.0 — 2026-09-30
+- Horários do resumo por utilizador: em "A minha conta" cada pessoa escolhe até quatro horas por dia (hora de Lisboa) para receber o resumo das carteiras e, em cada uma, se chega por e-mail, por Telegram ou pelos dois, só nos dias úteis ou todos os dias. Botões para testar por e-mail e no Telegram.
+- Quem tiver horários próprios deixa de receber o resumo geral do fim do dia. Cada horário sai uma vez por dia (até 3 horas depois da hora marcada, se a aplicação só acordar mais tarde); ao guardar depois da hora, o horário desse dia não é enviado atrasado; num grupo da família com a mesma hora chega uma só mensagem.
+- Novo endereço /api/cron/schedule (protegido com CRON_SECRET) para um "despertador" externo chamar a cada 5–15 minutos (por exemplo cron-job.org, grátis). As tarefas das 07:00 e 21:30 UTC e as visitas à aplicação também enviam os horários devidos. Instruções e estado em Administração → Definições → Resumo diário; a vigilância avisa se houver horários sem despertador.
+
 ## 1.25.0 — 2026-09-29
 - Vigilância da plataforma: cada tarefa agendada (07:00 e 21:30 UTC) verifica a outra, as cotações do Yahoo Finance (pede cotações novas), as posições sem símbolo ou com cotação parada há mais de 7 dias, os erros dos últimos envios e o bot do Telegram.
 - Se algo falhar, os administradores recebem um aviso no Telegram (ou por e-mail, se nenhum tiver o Telegram ligado): logo que o problema aparece, de novo a cada 24 horas enquanto for um erro, e uma mensagem "Resolvido" quando volta a funcionar.

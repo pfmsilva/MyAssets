@@ -18,6 +18,8 @@ import { updateSettings } from "@/app/actions/settings";
 import type { JobReport } from "@/lib/jobs";
 import { checkHealth, lastHealthCheck, openIssues } from "@/lib/health";
 import { HealthCheckButton } from "@/components/HealthCheckButton";
+import { scheduleStatus } from "@/lib/summary-schedule";
+import { appUrl } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,7 @@ export default async function SettingsAdmin() {
     ? "por configurar (TELEGRAM_BOT_TOKEN)"
     : `${tgUsers.length} pessoa(s) ligada(s) · resumo por ${CH[s.dailySummaryChannel]} · alertas por ${CH[s.alertChannel]} · prova de vida por ${CH[s.polChannel]}`;
   const pol = await getPolState();
+  const sched = await scheduleStatus();
   const [health, lastCheck, open] = await Promise.all([checkHealth(), lastHealthCheck(), openIssues()]);
   // Yahoo and the bot are only tested when probing (cron runs, "Verificar agora"): show their last result
   const probed = (["quotes-down", "telegram-webhook"] as const).filter((c) => open[c]).map((c) => ({ name: c === "quotes-down" ? "Yahoo Finance" : "Bot do Telegram", status: open[c].level, detail: open[c].title }));
@@ -106,8 +109,13 @@ export default async function SettingsAdmin() {
               <label className="flex items-center gap-2 text-sm font-normal text-ink"><input type="checkbox" name="alertBudget" defaultChecked={s.alertBudget} /> Alertar categorias acima do orçamento (uma vez por mês)</label>
             </Section>
 
-            <Section title="Resumo diário por e-mail" summary={summaryLine}>
+            <Section title="Resumo diário" summary={`${summaryLine}${sched.people ? ` · ${sched.people} com horários próprios` : ""}`}>
               <p className="text-sm text-ink-2 sm:col-span-2">No fim de cada dia (cerca das 22h30 de Lisboa, depois do fecho dos mercados americanos) cada utilizador recebe os gráficos da variação por dia e do ganho acumulado dos últimos 7 dias das carteiras com cotação — só das carteiras que pode ver na aplicação.</p>
+              <div className="rounded-lg bg-surface-2 p-3 text-xs text-ink-2 sm:col-span-2">
+                <p><b>Horários próprios:</b> cada pessoa pode escolher até quatro horas por dia, por e-mail e/ou Telegram, em <Link className="text-accent underline" href="/conta">A minha conta</Link>; quem o fizer deixa de receber este resumo geral. {sched.people ? `${sched.people} pessoa(s) com horários próprios.` : "Ninguém tem horários próprios."}</p>
+                <p className="mt-2">Para as horas saírem a tempo, é preciso um &laquo;despertador&raquo; que chame a aplicação a cada 5–15 minutos (as duas tarefas diárias só cobrem as 08:00 e as 22:30). Grátis em <b>cron-job.org</b>: novo cron job com o URL <code className="break-all">{appUrl() || "https://<a-sua-app>"}/api/cron/schedule</code>, a cada 5 minutos, e em <i>Advanced → Headers</i> o cabeçalho <code>Authorization</code> com o valor <code>Bearer</code> seguido do CRON_SECRET.</p>
+                <p className="mt-2">{sched.externalAt ? `Último despertador: ${new Date(sched.externalAt).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}.` : "O despertador ainda não chamou a aplicação."}{sched.last ? ` Última verificação dos horários: ${new Date(sched.last.at).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })} (${sched.last.source}) · ${sched.last.sent} e-mail(s), ${sched.last.telegram} Telegram${sched.last.errors.length ? ` · ${sched.last.errors.length} erro(s): ${sched.last.errors[0]}` : ""}.` : ""}</p>
+              </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor="dailySummary">Enviar</label>
                 <select id="dailySummary" name="dailySummary" defaultValue={s.dailySummary}>

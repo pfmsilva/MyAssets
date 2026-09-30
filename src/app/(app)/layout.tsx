@@ -9,6 +9,7 @@ import { getSettings } from "@/lib/settings";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { after } from "next/server";
 import { healthCheckIfDue } from "@/lib/health";
+import { runScheduledIfDue } from "@/lib/summary-schedule";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -17,6 +18,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const settings = await getSettings();
   // if neither scheduled task runs, an administrator's visit still notices it (at most every 6 hours)
   if (user.role === "ADMIN") after(() => healthCheckIfDue().catch(() => undefined));
+  // any visit also sends personal summary times that are due (at most every 5 minutes)
+  after(() => runScheduledIfDue().catch(() => undefined));
   const items: NavItem[] = NAV_GROUPS.filter((g) => !g.min || hasRole(user.role, g.min)).map((g) => ({ href: g.href, label: g.label, icon: g.icon, short: g.short }));
   const mobileItems = items.filter((i) => ["/", "/ativos", "/despesas", "/rentabilidade"].includes(i.href));
   const more = items.filter((i) => !mobileItems.includes(i));

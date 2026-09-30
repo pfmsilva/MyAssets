@@ -65,6 +65,7 @@ model User {
   telegramChatId   String?   // private chat or family group where the bot writes to this user
   telegramName     String?   // how that chat is called (for display)
   telegramLinkedAt DateTime?
+  summarySlots     Json?     // up to 4 times of day for the summary, each by e-mail and/or Telegram (see summary-schedule.ts)
   visibleMembers Member[] @relation("UserVisibleMembers")
   accounts      Account[]
   sessions      Session[]
