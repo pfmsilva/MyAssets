@@ -53,6 +53,8 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   `VAPID_PRIVATE_KEY`). No iPhone é preciso instalar a aplicação no ecrã principal.
 - **Qualidade dos dados** (Administração → Qualidade): verifica a coerência do que está registado (totais vs.
   posições, duplicados, custos absurdos, datas no futuro, vendas a mais) e alimenta a vigilância.
+- **Avisos da vigilância**: chegam a todos os administradores por Telegram, e-mail e notificação na app ao mesmo tempo
+  (o botão «Enviar alerta de teste» mostra o resultado de cada canal).
 - **Testes**: `npm test` (Vitest). Unitários em `tests/unit`; de integração em `tests/integration`, que precisam de
   `DATABASE_URL` com as migrações aplicadas (criam dados `TEST_…` e apagam-nos; sem `DATABASE_URL` são ignorados).
   A CI (`.github/workflows/ci.yml`) corre tipos, lint, testes com Postgres e build em cada push.

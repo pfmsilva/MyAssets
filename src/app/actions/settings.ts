@@ -8,7 +8,7 @@ import { emailLayout, sendEmail } from "@/lib/email";
 import { purgeActivity, runDailyJobs, JobReport } from "@/lib/jobs";
 import { prisma } from "@/lib/prisma";
 import { runDailySummary } from "@/lib/daily-summary";
-import { runHealthCheck } from "@/lib/health";
+import { runHealthCheck, sendHealthTest } from "@/lib/health";
 
 export type SettingsState = { ok?: boolean; error?: string };
 
@@ -125,4 +125,12 @@ export async function checkHealthNow() {
   await logActivity(me, "health.check", { details: { issues: r.issues.map((i) => i.title), notified: r.notified } });
   revalidatePath("/admin/definicoes");
   return { issues: r.issues.length, notified: r.notified };
+}
+
+/** Sends a test alert to the administrators on every channel and says what reached where. */
+export async function healthTestNow() {
+  const me = await assertRole("ADMIN");
+  const r = await sendHealthTest(me.name ?? me.email);
+  await logActivity(me, "health.test", { details: { telegram: r.telegram, email: r.email, app: r.app } });
+  return r;
 }

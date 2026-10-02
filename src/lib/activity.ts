@@ -57,6 +57,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "telegram.ask": "Resumo pedido no Telegram",
   "jobs.run": "Tarefas diárias executadas",
   "health.check": "Vigilância verificada",
+  "health.test": "Alerta de teste da vigilância",
   "summary.schedule": "Horários do resumo alterados",
   "summary.scheduled": "Resumo agendado",
   "push.enable": "Notificações ativadas num dispositivo",

@@ -1,4 +1,5 @@
 import { EXTERNAL, runScheduledSummaries } from "@/lib/summary-schedule";
+import { healthCheckIfDue } from "@/lib/health";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,7 +14,10 @@ export async function GET(req: Request) {
   const auth = req.headers.get("authorization") ?? "";
   const key = new URL(req.url).searchParams.get("key");
   if (!secret || (auth !== `Bearer ${secret}` && key !== secret)) return new Response("Unauthorized", { status: 401 });
-  return Response.json(await runScheduledSummaries(EXTERNAL));
+  const report = await runScheduledSummaries(EXTERNAL);
+  // the wake-up also watches over the platform: every hour, so a problem is told about within the hour
+  await healthCheckIfDue({ everyMin: 60, probe: true, source: "despertador" }).catch(() => undefined);
+  return Response.json(report);
 }
 
 export const POST = GET;

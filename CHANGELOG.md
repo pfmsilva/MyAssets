@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.28.1 — 2026-10-02
+- Vigilância: os avisos passam a chegar logo a todos os administradores por todos os canais ao mesmo tempo — Telegram, e-mail (a cada administrador e aos destinatários dos alertas, endereço a endereço, para que um endereço recusado não impeça os outros) e notificação na app (sino e dispositivos). Antes o e-mail só era usado se nenhum administrador tivesse o Telegram ligado.
+- O despertador (/api/cron/schedule) passa a verificar a plataforma de hora a hora, para um problema ser comunicado dentro da hora e não só nas tarefas das 07:00 e 21:30 UTC.
+- Novo botão "Enviar alerta de teste" no cartão Vigilância (Administração → Definições), que mostra o que chegou a cada canal e porque falhou, quando falha. Novo teste automático que garante que os três canais são avisados.
+
 ## 1.28.0 — 2026-10-02
 - Testes automáticos (`npm test`, Vitest): 96 testes sobre os cálculos que sustentam a aplicação — XIRR, TWR e ganho por período, custo médio das carteiras de ações, barras diárias/semanais e o ganho de hoje igual às cotações, importadores (DEGIRO, Binance, deteção automática), regras de categorias, orçamento, permissões por membro, horários do resumo, notificações e o código de ligação do Telegram. Os testes de integração correm numa base de dados real e limpam-se a si próprios; sem `DATABASE_URL` são ignorados.
 - Verificação automática no GitHub (CI) em cada push e pull request: tipos, lint, testes com Postgres e build. `CLAUDE.md` passa a incluir `npm test` antes de cada commit.

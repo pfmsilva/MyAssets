@@ -178,22 +178,46 @@ export async function checkHealth(opts: { probe?: boolean } = {}): Promise<Healt
 type OpenIssue = { title: string; level: HealthIssue["level"]; since: string; alertedAt: string };
 type State = { open: Record<string, OpenIssue> };
 
-/** Sends a message to the administrators: Telegram if any is linked, otherwise e-mail. */
-async function notifyAdmins(tgHtml: string, subject: string, mailHtml: string): Promise<string> {
-  if (telegramConfigured()) {
+export type AdminMessage = { title: string; tgHtml: string; mailHtml: string; appBody: string; url?: string };
+export type AdminAlertResult = { telegram: string; email: string; app: string; delivered: number; summary: string };
+
+/**
+ * Tells every administrator on every channel at once: Telegram, e-mail (each address on its own,
+ * so one refused address cannot stop the others) and a notification in the app (bell and push).
+ */
+export async function alertAdmins(m: AdminMessage): Promise<AdminAlertResult> {
+  const base = appUrl();
+  const link = m.url ?? "/admin/definicoes";
+
+  const telegram = async (): Promise<[string, boolean]> => {
+    if (!telegramConfigured()) return ["não configurado (TELEGRAM_BOT_TOKEN)", false];
     const chats = await chatsForUsers({ admins: true });
-    if (chats.length) {
-      const url = appUrl();
-      const results = await Promise.all(chats.map((c) => sendTelegramMessage(c, tgHtml, url ? { buttonText: "Abrir Definições", buttonUrl: `${url}/admin/definicoes` } : {})));
-      const ok = results.filter((r) => r.ok).length;
-      if (ok) return `Telegram (${ok} conversa(s))`;
-    }
-  }
-  const s = await getSettings();
-  const to = alertRecipients(s);
-  if (!to.length || !emailConfigured()) return "sem canal: ligue o Telegram de um administrador ou configure o e-mail dos alertas";
-  const r = await sendEmail({ to, subject, html: emailLayout(subject, mailHtml, appUrl()) });
-  return r.ok ? `e-mail para ${to.join(", ")}` : `falhou: ${r.error}`;
+    if (!chats.length) return ["nenhum administrador ligado ao Telegram", false];
+    const results = await Promise.all(chats.map((c) => sendTelegramMessage(c, m.tgHtml, base ? { buttonText: "Abrir a aplicação", buttonUrl: `${base}${link}` } : {})));
+    const ok = results.filter((r) => r.ok).length;
+    const err = results.find((r) => !r.ok);
+    return [`${ok} de ${chats.length} conversa(s)${err && !err.ok ? ` (${err.error})` : ""}`, ok > 0];
+  };
+
+  const email = async (): Promise<[string, boolean]> => {
+    if (!emailConfigured()) return ["não configurado (RESEND_API_KEY, ALERTS_FROM)", false];
+    const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+    const to = [...new Set([...admins.map((a) => a.email.toLowerCase()), ...alertRecipients(await getSettings()).map((e) => e.toLowerCase())])];
+    if (!to.length) return ["sem destinatários", false];
+    const html = emailLayout(m.title, `${m.mailHtml}${base ? `<p><a href="${base}${link}" style="color:#2a78d6">Abrir a aplicação</a></p>` : ""}`, base);
+    const results = await Promise.all(to.map(async (addr) => ({ addr, r: await sendEmail({ to: [addr], subject: m.title, html }) })));
+    const ok = results.filter((x) => x.r.ok).length;
+    const failed = results.filter((x) => !x.r.ok);
+    return [`${ok} de ${to.length} destinatário(s)${failed.length ? ` — falhou ${failed.map((f) => `${f.addr}: ${f.r.error}`).join("; ")}` : ""}`, ok > 0];
+  };
+
+  const app = async (): Promise<[string, boolean]> => {
+    const r = await notifyUsers(await adminIds(), { kind: "health", title: m.title, body: m.appBody.slice(0, 300), url: link });
+    return [`${r.users} administrador(es) no sino, ${r.pushed} de ${r.devices} dispositivo(s) com notificação${r.errors[0] ? ` (${r.errors[0]})` : ""}`, r.users > 0];
+  };
+
+  const [[tg, tgOk], [mail, mailOk], [inApp, appOk]] = await Promise.all([telegram().catch((e): [string, boolean] => [String(e), false]), email().catch((e): [string, boolean] => [String(e), false]), app().catch((e): [string, boolean] => [String(e), false])]);
+  return { telegram: tg, email: mail, app: inApp, delivered: [tgOk, mailOk, appOk].filter(Boolean).length, summary: `Telegram: ${tg} · e-mail: ${mail} · app: ${inApp}` };
 }
 
 /**
@@ -230,11 +254,9 @@ export async function runHealthCheck(opts: { probe?: boolean; source: string }):
       ...resolved.map(([, o]) => `<p>✅ Resolvido: ${escHtml(o.title)}</p>`),
     ].join("");
     const subject = toSend.length ? `Pecúlio · ${toSend[0].title}${toSend.length > 1 ? ` (+${toSend.length - 1})` : ""}` : "Pecúlio · problema resolvido";
-    notified = await notifyAdmins(tg, subject, mail);
-    if (s.appNotifications) {
-      const r = await notifyUsers(await adminIds(), { kind: "health", title: toSend.length ? `⚠️ ${toSend[0].title}${toSend.length > 1 ? ` (+${toSend.length - 1})` : ""}` : "✅ Problema resolvido", body: [...toSend.map((i) => i.detail ?? i.title), ...resolved.map(([, o]) => `Resolvido: ${o.title}`)].join(" · ").slice(0, 300), url: "/admin/definicoes" });
-      notified = `${notified ? `${notified} + ` : ""}app (${r.pushed} dispositivo(s))`;
-    }
+    const appBody = [...toSend.map((i) => i.detail ?? i.title), ...resolved.map(([, o]) => `Resolvido: ${o.title}`)].join(" · ");
+    const sent = await alertAdmins({ title: `${toSend.length ? (toSend.some((i) => i.level === "error") ? "🚨 " : "⚠️ ") : "✅ "}${subject.replace(/^Pecúlio · /, "")}`, tgHtml: tg, mailHtml: mail, appBody });
+    notified = sent.summary;
   }
   await saveSetting(STATE_KEY, JSON.stringify({ open } satisfies State));
   await saveSetting(CHECKED_KEY, JSON.stringify({ at: nowIso, source: opts.source, issues: result.issues.length, notified }));
@@ -242,10 +264,20 @@ export async function runHealthCheck(opts: { probe?: boolean; source: string }):
 }
 
 /** Called on an administrator's visit: checks at most every 6 hours, in case neither cron runs. */
-export async function healthCheckIfDue() {
+export async function healthCheckIfDue(opts: { everyMin?: number; probe?: boolean; source?: string } = {}) {
   const last = parse<{ at: string }>(await setting(CHECKED_KEY));
-  if (last && Date.now() - new Date(last.at).getTime() < 6 * H) return;
-  await runHealthCheck({ source: "visita de administrador" });
+  if (last && Date.now() - new Date(last.at).getTime() < (opts.everyMin ?? 360) * 60e3) return;
+  await runHealthCheck({ probe: opts.probe, source: opts.source ?? "visita de administrador" });
+}
+
+/** A test message through every channel, to see that the administrators really receive the alerts. */
+export async function sendHealthTest(by: string) {
+  return alertAdmins({
+    title: "✅ Teste da vigilância",
+    tgHtml: `✅ <b>Pecúlio · vigilância</b>\nAlerta de teste pedido por ${escHtml(by)}. Se está a ler isto, os avisos chegam por Telegram.`,
+    mailHtml: `<p>Alerta de teste pedido por ${escHtml(by)}. Se está a ler isto, os avisos chegam por e-mail.</p>`,
+    appBody: `Alerta de teste pedido por ${by}.`,
+  });
 }
 
 export async function lastHealthCheck() {

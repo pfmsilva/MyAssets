@@ -154,7 +154,7 @@ export default async function SettingsAdmin() {
                 </div>
               ))}
               <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="telegramShowTotals" defaultChecked={s.telegramShowTotals} /> Mostrar no Telegram também o valor das carteiras (por omissão só ganhos e perdas)</label>
-              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="appNotifications" defaultChecked={s.appNotifications} /> Enviar também notificações na app (sino e dispositivos com notificações ativas) com o resumo geral, os alertas e os avisos da vigilância</label>
+              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="appNotifications" defaultChecked={s.appNotifications} /> Enviar também notificações na app (sino e dispositivos com notificações ativas) com o resumo geral e os alertas (a vigilância avisa sempre por todos os canais)</label>
               <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="telegramWeeklyReport" defaultChecked={s.telegramWeeklyReport} /> Enviar o relatório PDF aos administradores no Telegram à segunda-feira</label>
               <div className="text-xs text-ink-3 sm:col-span-2">
                 {tgUsers.length ? <>Ligados: {tgUsers.map((u) => `${u.name ?? u.email} → ${u.telegramName}`).join(" · ")}</> : "Ainda ninguém ligou o Telegram."}
@@ -167,8 +167,8 @@ export default async function SettingsAdmin() {
             </Section>
 
             <Section title="Vigilância" summary={`${s.healthAlerts ? "avisa os administradores" : "sem avisos"} · ${healthBad ? `${healthBad} problema(s)` : "tudo a funcionar"}`}>
-              <p className="text-sm text-ink-2 sm:col-span-2">Cada tarefa agendada verifica a outra, as cotações do Yahoo e o bot do Telegram. Se algo falhar, os administradores recebem um aviso no Telegram (ou por e-mail, para os destinatários dos alertas, se nenhum tiver o Telegram ligado) e outro quando voltar a funcionar.</p>
-              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="healthAlerts" defaultChecked={s.healthAlerts} /> Avisar os administradores quando uma tarefa, as cotações ou o bot falharem</label>
+              <p className="text-sm text-ink-2 sm:col-span-2">Cada tarefa agendada verifica a outra, as cotações do Yahoo e o bot do Telegram. Se algo falhar, todos os administradores recebem logo um aviso por Telegram, por e-mail (a cada administrador e aos destinatários dos alertas) e por notificação na app, e outro quando voltar a funcionar. O despertador faz esta verificação de hora a hora; sem ele, corre nas tarefas diárias e quando um administrador abre a aplicação.</p>
+              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="healthAlerts" defaultChecked={s.healthAlerts} /> Avisar os administradores (Telegram, e-mail e notificação na app) quando uma tarefa, as cotações, o bot ou a qualidade dos dados falharem</label>
             </Section>
 
             <Section title="Prova de vida" summary={polSummary}>
