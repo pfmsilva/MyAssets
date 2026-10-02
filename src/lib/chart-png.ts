@@ -85,7 +85,7 @@ export type SummaryDay = { label: string; weekday: string; pnl: number | null; c
  * The two charts of the daily summary in one image, with titles, dates and values drawn in
  * (for Telegram, which shows images but not HTML): bars of each day's change and the cumulative line.
  */
-export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; scale?: number; barsTitle?: string; lineTitle?: string } = {}): Buffer {
+export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; scale?: number; barsTitle?: string; lineTitle?: string; footer?: string } = {}): Buffer {
   const W = 760;
   const padX = 24;
   const colW = (W - 2 * padX) / days.length;
@@ -162,7 +162,8 @@ export function summaryChartsPng(days: SummaryDay[], opts: { title?: string; sca
     parts.push(txt(cx(i), lLabels + 15, d.weekday, { size: 11, color: "#8a8985" }));
   });
 
-  const H = lLabels + 30;
+  const H = lLabels + 30 + (opts.footer ? 30 : 0);
+  if (opts.footer) parts.push(txt(W - padX, H - 14, opts.footer, { size: 12, color: "#8a8985", anchor: "end" }));
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="${lc}" stop-opacity="0.28"/><stop offset="100%" stop-color="${lc}" stop-opacity="0.04"/>

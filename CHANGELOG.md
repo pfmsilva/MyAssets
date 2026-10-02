@@ -1,5 +1,8 @@
 # Histórico de versões
 
+## 1.26.2 — 2026-10-02
+- Telegram: a imagem dos gráficos (resumo, /resumo, /semana e /mes) passa a indicar em rodapé a data e a hora das cotações do Yahoo Finance usadas.
+
 ## 1.26.1 — 2026-10-02
 - Horários do resumo mais fiáveis: se o envio para o Telegram falhar (ou a preparação do resumo der erro), o horário volta a ser tentado no despertador seguinte, até 3 vezes, em vez de se perder.
 - As tarefas das 07:00 e 21:30 UTC tratam primeiro dos horários pessoais, antes do trabalho mais demorado que podia esgotar o tempo limite.

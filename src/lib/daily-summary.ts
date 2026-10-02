@@ -97,6 +97,8 @@ export async function buildDailySummary(user: { id: string; role: Role; name?: s
   const dateLabel = new Date().toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon", weekday: "long", day: "numeric", month: "long" });
   const quotesAt = pnl.quotesAt ? pnl.quotesAt.toLocaleTimeString("pt-PT", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit" }) : null;
 
+  // "29/09 22:46": the date matters when the markets were closed and the quotes are from an earlier day
+  const quotesStamp = pnl.quotesAt ? pnl.quotesAt.toLocaleString("pt-PT", { timeZone: "Europe/Lisbon", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(", ", " ") : null;
   const kpi = (label: string, v: string, color = "#0b0b0b") => `<td width="33%" style="background:#f0efec;border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:#8a8985;text-transform:uppercase;letter-spacing:.3px">${label}</div><div style="font-size:20px;font-weight:600;color:${color};white-space:nowrap">${v}</div></td>`;
   const body = `
 <p style="margin:0 0 12px">Olá${user.name ? ` ${esc(user.name.split(" ")[0])}` : ""}, este é o resumo das carteiras com cotação no fim de ${esc(dateLabel)}.</p>
@@ -147,7 +149,7 @@ ${labelsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.pnl ===
     html: emailLayout("Resumo do dia", body, url),
     text,
     attachments: [{ filename: "ganho-acumulado.png", content: chart, contentId: CUMULATIVE_CID }],
-    telegram: { png: summaryChartsPng(days), caption },
+    telegram: { png: summaryChartsPng(days, { footer: quotesStamp ? `Cotações do Yahoo Finance · ${quotesStamp}` : undefined }), caption },
   };
 }
 

@@ -204,7 +204,7 @@ export async function periodReply(user: Who, group: Extract<Grouping, "week" | "
   const worst = points.reduce((a, b) => (b.pnl < a.pnl ? b : a));
   const unit = group === "week" ? "semana" : "mês";
   const name = (p: (typeof points)[number]) => (group === "week" ? `a que acabou a ${p.date.slice(8, 10)}/${p.date.slice(5, 7)}` : `${MONTHS_LONG[new Date(p.date).getUTCMonth()]} ${p.date.slice(0, 4)}`);
-  const png = summaryChartsPng(bars, { barsTitle: group === "week" ? "Variação por semana" : "Variação por mês", lineTitle: "Ganho acumulado" });
+  const png = summaryChartsPng(bars, { barsTitle: group === "week" ? "Variação por semana" : "Variação por mês", lineTitle: "Ganho acumulado", footer: pnl.quotesAt ? `Cotações do Yahoo Finance · ${pnl.quotesAt.toLocaleString("pt-PT", { timeZone: "Europe/Lisbon", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(", ", " ")}` : undefined });
   const live = pnl.assets.filter((a) => a.live);
   const caption = [
     `<b>Pecúlio · ${group === "week" ? `últimas ${points.length} semanas` : `últimos ${points.length} meses`}</b>`,
