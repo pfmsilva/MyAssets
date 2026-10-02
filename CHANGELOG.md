@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.28.0 — 2026-10-02
+- Testes automáticos (`npm test`, Vitest): 96 testes sobre os cálculos que sustentam a aplicação — XIRR, TWR e ganho por período, custo médio das carteiras de ações, barras diárias/semanais e o ganho de hoje igual às cotações, importadores (DEGIRO, Binance, deteção automática), regras de categorias, orçamento, permissões por membro, horários do resumo, notificações e o código de ligação do Telegram. Os testes de integração correm numa base de dados real e limpam-se a si próprios; sem `DATABASE_URL` são ignorados.
+- Verificação automática no GitHub (CI) em cada push e pull request: tipos, lint, testes com Postgres e build. `CLAUDE.md` passa a incluir `npm test` antes de cada commit.
+- Nova página Administração → Qualidade com verificações de coerência dos dados: total do registo que não bate com a soma das posições, movimentos importados duas vezes, operações repetidas, posições sem custo de aquisição ou com ganho suspeito (acima de 1 000 %), saltos grandes entre registos, registos com data no futuro, vendas de mais ações do que as compradas e despesas sem categoria.
+- A vigilância passa a incluir a qualidade dos dados: os administradores recebem um aviso quando surge um aviso novo (e no /estado do Telegram).
+
 ## 1.27.0 — 2026-10-02
 - Notificações na app: em "A minha conta" cada pessoa ativa as notificações push em cada dispositivo (browser ou aplicação instalada) e recebe os resumos e alertas mesmo com a aplicação fechada. No iPhone/iPad é preciso adicionar a aplicação ao ecrã principal (iOS 16.4 ou mais recente). A notificação mostra só ganhos e perdas, nunca o valor do património. Sem custos e sem configuração: as chaves de envio são geradas pela própria aplicação.
 - Novo sino com o número de notificações por ler, no menu lateral e no cabeçalho do telemóvel, e a página "Notificações" com o histórico dos últimos 30 dias, incluindo a imagem dos gráficos dos resumos.

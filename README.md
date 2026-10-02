@@ -51,6 +51,11 @@ investimento (DEGIRO, XTB), cripto (Binance) e dinheiro físico.
   em `/notificacoes`. Os horários do resumo têm a coluna «App»; o resumo geral, os alertas e a vigilância também
   chegam à app. As chaves VAPID são geradas e guardadas na base de dados (ou usar `VAPID_PUBLIC_KEY` e
   `VAPID_PRIVATE_KEY`). No iPhone é preciso instalar a aplicação no ecrã principal.
+- **Qualidade dos dados** (Administração → Qualidade): verifica a coerência do que está registado (totais vs.
+  posições, duplicados, custos absurdos, datas no futuro, vendas a mais) e alimenta a vigilância.
+- **Testes**: `npm test` (Vitest). Unitários em `tests/unit`; de integração em `tests/integration`, que precisam de
+  `DATABASE_URL` com as migrações aplicadas (criam dados `TEST_…` e apagam-nos; sem `DATABASE_URL` são ignorados).
+  A CI (`.github/workflows/ci.yml`) corre tipos, lint, testes com Postgres e build em cada push.
 - **Vigilância** (Administração → Definições): as duas tarefas agendadas verificam-se uma à outra, testam as
   cotações do Yahoo e o bot do Telegram, e avisam os administradores (Telegram ou e-mail) quando algo falha e
   quando volta a funcionar.

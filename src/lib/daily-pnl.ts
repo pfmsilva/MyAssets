@@ -52,7 +52,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 /** ISO week (Monday to Sunday) of a date, as "2026-W39". */
-function isoWeek(d: Date) {
+export function isoWeek(d: Date) {
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   const day = (t.getUTCDay() + 6) % 7; // Monday = 0
   t.setUTCDate(t.getUTCDate() - day + 3); // the Thursday of that week decides the year
@@ -61,7 +61,7 @@ function isoWeek(d: Date) {
   return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-function bucketOf(dateIso: string, group: Grouping): { key: string; label: string } {
+export function bucketOf(dateIso: string, group: Grouping): { key: string; label: string } {
   const d = new Date(dateIso);
   if (group === "week") {
     const key = isoWeek(d);
@@ -73,7 +73,7 @@ function bucketOf(dateIso: string, group: Grouping): { key: string; label: strin
 }
 
 /** Sums the daily points into weeks, months or years (value = the last one of each bucket). */
-function groupPoints(points: DailyPoint[], group: Grouping): DailyPoint[] {
+export function groupPoints(points: DailyPoint[], group: Grouping): DailyPoint[] {
   if (group === "day") return points;
   const out: DailyPoint[] = [];
   let cumulative = 0;

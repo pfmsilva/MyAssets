@@ -2,7 +2,7 @@
 
 Ver README.md para arquitetura, comandos e deploy.
 
-- `npm run typecheck` e `npm run lint` antes de commit.
+- `npm run typecheck`, `npm run lint` e `npm test` antes de commit (os testes de integração precisam de `DATABASE_URL`; sem ela são ignorados). A CI no GitHub repete tudo isto mais o build.
 - Esquema em `prisma/schema.prisma`; alterações via `npx prisma migrate dev --name <nome>`.
 - Novos importadores em `src/lib/importers/` (registar em `index.ts`).
 

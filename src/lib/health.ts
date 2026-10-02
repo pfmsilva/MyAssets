@@ -6,6 +6,7 @@ import { getLiveValuations, getQuotes } from "./quotes";
 import { LIVE_TYPES } from "./daily-pnl";
 import type { JobReport } from "./jobs";
 import { adminIds, notifyUsers } from "./notify";
+import { checkDataQuality } from "./data-quality";
 import type { SummaryReport } from "./daily-summary";
 import { scheduleStatus } from "./summary-schedule";
 
@@ -149,6 +150,19 @@ export async function checkHealth(opts: { probe?: boolean } = {}): Promise<Healt
     );
   }
 
+  // ---- consistency of the data (a few queries over everything: only when probing) ----
+  if (opts.probe) {
+    const dq = await checkDataQuality().catch(() => null);
+    if (dq) {
+      const important = dq.issues.filter((i) => i.level !== "info");
+      add(
+        "Qualidade dos dados",
+        important.length ? { code: "data-quality", level: "warn", title: `${important.length} aviso(s) de qualidade nos dados`, detail: `${important.slice(0, 3).map((i) => i.title).join("; ")}${important.length > 3 ? " …" : ""}. Veja Administração → Qualidade.` } : null,
+        `sem avisos${dq.counts.info ? ` (${dq.counts.info} nota(s))` : ""}`,
+      );
+    }
+  }
+
   // ---- Telegram ----
   if (telegramConfigured() && opts.probe) {
     const linked = await prisma.user.count({ where: { telegramChatId: { not: null } } });
@@ -200,7 +214,7 @@ export async function runHealthCheck(opts: { probe?: boolean; source: string }):
     open[i.code] = { title: i.title, level: i.level, since: prev?.since ?? nowIso, alertedAt: due ? nowIso : prev.alertedAt };
   }
   // without probing, the probe-only checks keep their last state
-  if (!opts.probe) for (const code of ["quotes-down", "telegram-webhook"]) if (state.open[code] && !open[code]) open[code] = state.open[code];
+  if (!opts.probe) for (const code of ["quotes-down", "telegram-webhook", "data-quality"]) if (state.open[code] && !open[code]) open[code] = state.open[code];
   const resolved = Object.entries(state.open).filter(([code]) => !open[code]);
 
   let notified: string | null = null;

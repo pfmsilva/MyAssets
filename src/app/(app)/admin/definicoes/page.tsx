@@ -56,7 +56,8 @@ export default async function SettingsAdmin() {
   const sched = await scheduleStatus();
   const [health, lastCheck, open] = await Promise.all([checkHealth(), lastHealthCheck(), openIssues()]);
   // Yahoo and the bot are only tested when probing (cron runs, "Verificar agora"): show their last result
-  const probed = (["quotes-down", "telegram-webhook"] as const).filter((c) => open[c]).map((c) => ({ name: c === "quotes-down" ? "Yahoo Finance" : "Bot do Telegram", status: open[c].level, detail: open[c].title }));
+  const probedNames = { "quotes-down": "Yahoo Finance", "telegram-webhook": "Bot do Telegram", "data-quality": "Qualidade dos dados" } as const;
+  const probed = (Object.keys(probedNames) as (keyof typeof probedNames)[]).filter((c) => open[c]).map((c) => ({ name: probedNames[c], status: open[c].level, detail: open[c].title }));
   const healthRows = [...health.checks, ...probed];
   const healthBad = healthRows.filter((c) => c.status !== "ok").length;
   const [activityCount, oldest] = await Promise.all([prisma.activityLog.count(), prisma.activityLog.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } })]);
