@@ -30,7 +30,8 @@ const PAGES: Page[] = [
   { title: "Cotações", href: "/admin/instrumentos", words: "yahoo simbolos isin cotacoes", min: "ADMIN" },
   { title: "Registo de atividade", href: "/admin/atividade", words: "log auditoria acessos", min: "ADMIN" },
   { title: "Definições", href: "/admin/definicoes", words: "alertas backup prova de vida retencao cron email ia telegram resumo diario canais", min: "ADMIN" },
-  { title: "A minha conta", href: "/conta", words: "conta perfil telegram ligar notificacoes mensagens" },
+  { title: "A minha conta", href: "/conta", words: "conta perfil telegram ligar notificacoes push horarios resumo mensagens" },
+  { title: "Notificações", href: "/notificacoes", words: "notificacoes sino alertas avisos push resumo" },
   { title: "Relatório PDF", href: "/api/relatorio", words: "relatorio pdf exportar resumo", min: "ADMIN" },
 ];
 

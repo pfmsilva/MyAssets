@@ -59,6 +59,8 @@ export const ACTION_LABEL: Record<string, string> = {
   "health.check": "Vigilância verificada",
   "summary.schedule": "Horários do resumo alterados",
   "summary.scheduled": "Resumo agendado",
+  "push.enable": "Notificações ativadas num dispositivo",
+  "push.disable": "Notificações desativadas num dispositivo",
   "activity.purge": "Registo de atividade limpo",
   "export.excel": "Exportação Excel",
   "export.backup": "Backup descarregado",

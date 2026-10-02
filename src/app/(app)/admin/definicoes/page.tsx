@@ -153,6 +153,7 @@ export default async function SettingsAdmin() {
                 </div>
               ))}
               <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="telegramShowTotals" defaultChecked={s.telegramShowTotals} /> Mostrar no Telegram também o valor das carteiras (por omissão só ganhos e perdas)</label>
+              <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="appNotifications" defaultChecked={s.appNotifications} /> Enviar também notificações na app (sino e dispositivos com notificações ativas) com o resumo geral, os alertas e os avisos da vigilância</label>
               <label className="flex items-center gap-2 text-sm font-normal text-ink sm:col-span-2"><input type="checkbox" name="telegramWeeklyReport" defaultChecked={s.telegramWeeklyReport} /> Enviar o relatório PDF aos administradores no Telegram à segunda-feira</label>
               <div className="text-xs text-ink-3 sm:col-span-2">
                 {tgUsers.length ? <>Ligados: {tgUsers.map((u) => `${u.name ?? u.email} → ${u.telegramName}`).join(" · ")}</> : "Ainda ninguém ligou o Telegram."}

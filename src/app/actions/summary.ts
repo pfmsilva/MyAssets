@@ -12,6 +12,7 @@ const slotSchema = z.object({
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora inválida (HH:MM)."),
   email: z.boolean(),
   telegram: z.boolean(),
+  app: z.boolean(),
   days: z.enum(["weekdays", "all"]),
 });
 
@@ -21,13 +22,13 @@ export async function saveSummarySlots(input: unknown): Promise<{ ok: boolean; m
   const parsed = z.array(slotSchema).length(SLOT_COUNT).safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const slots = parsed.data;
-  const bad = slots.find((s) => s.on && !s.email && !s.telegram);
-  if (bad) return { ok: false, message: `Escolha e-mail e/ou Telegram para as ${bad.time}.` };
+  const bad = slots.find((s) => s.on && !s.email && !s.telegram && !s.app);
+  if (bad) return { ok: false, message: `Escolha e-mail, Telegram e/ou notificação na app para as ${bad.time}.` };
   const u = await prisma.user.findUniqueOrThrow({ where: { id: me.id }, select: { telegramChatId: true } });
   await prisma.user.update({ where: { id: me.id }, data: { summarySlots: slots } });
   await skipPassedToday(me.id, slots);
   const active = activeSlots(readSlots(slots));
-  await logActivity(me, "summary.schedule", { details: { horarios: active.map((s) => `${s.time} ${[s.email && "e-mail", s.telegram && "Telegram"].filter(Boolean).join("+")}${s.days === "all" ? " (todos os dias)" : ""}`) } });
+  await logActivity(me, "summary.schedule", { details: { horarios: active.map((s) => `${s.time} ${[s.email && "e-mail", s.telegram && "Telegram", s.app && "app"].filter(Boolean).join("+")}${s.days === "all" ? " (todos os dias)" : ""}`) } });
   revalidatePath("/conta");
   const warn = active.some((s) => s.telegram) && !u.telegramChatId ? " Ligue o Telegram abaixo para receber os de Telegram." : "";
   return { ok: true, message: active.length ? `Guardado: ${active.map((s) => s.time).join(", ")}.${warn}` : "Guardado: sem horários ativos (recebe o resumo geral definido pelo administrador, se houver)." };

@@ -5,6 +5,7 @@ import { chatsForUsers, escHtml, sendTelegramMessage, telegramConfigured, webhoo
 import { getLiveValuations, getQuotes } from "./quotes";
 import { LIVE_TYPES } from "./daily-pnl";
 import type { JobReport } from "./jobs";
+import { adminIds, notifyUsers } from "./notify";
 import type { SummaryReport } from "./daily-summary";
 import { scheduleStatus } from "./summary-schedule";
 
@@ -216,6 +217,10 @@ export async function runHealthCheck(opts: { probe?: boolean; source: string }):
     ].join("");
     const subject = toSend.length ? `Pecúlio · ${toSend[0].title}${toSend.length > 1 ? ` (+${toSend.length - 1})` : ""}` : "Pecúlio · problema resolvido";
     notified = await notifyAdmins(tg, subject, mail);
+    if (s.appNotifications) {
+      const r = await notifyUsers(await adminIds(), { kind: "health", title: toSend.length ? `⚠️ ${toSend[0].title}${toSend.length > 1 ? ` (+${toSend.length - 1})` : ""}` : "✅ Problema resolvido", body: [...toSend.map((i) => i.detail ?? i.title), ...resolved.map(([, o]) => `Resolvido: ${o.title}`)].join(" · ").slice(0, 300), url: "/admin/definicoes" });
+      notified = `${notified ? `${notified} + ` : ""}app (${r.pushed} dispositivo(s))`;
+    }
   }
   await saveSetting(STATE_KEY, JSON.stringify({ open } satisfies State));
   await saveSetting(CHECKED_KEY, JSON.stringify({ at: nowIso, source: opts.source, issues: result.issues.length, notified }));

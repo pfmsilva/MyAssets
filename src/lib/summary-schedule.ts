@@ -5,6 +5,7 @@ import { emailConfigured, sendEmail } from "./email";
 import { sendTelegramPhotos, telegramConfigured } from "./telegram";
 import { getSettings } from "./settings";
 import { logActivity } from "./activity";
+import { notifyUsers } from "./notify";
 import { activeSlots, LATE_MIN, lisbonNow, readSlots, toMin, type Slot } from "./summary-slots";
 export { activeSlots, readSlots, DEFAULT_SLOTS, SLOT_COUNT, type Slot } from "./summary-slots";
 
@@ -51,7 +52,7 @@ export async function runScheduledSummaries(source: string, now = new Date()): P
   for (const u of users) {
     let content: SummaryContent | null | undefined;
     for (const [i, slot] of readSlots(u.summarySlots).entries()) {
-      if (!slot.on || (!slot.email && !slot.telegram)) continue;
+      if (!slot.on || (!slot.email && !slot.telegram && !slot.app)) continue;
       if (slot.days === "weekdays" && weekend) continue;
       const late = minutes - toMin(slot.time);
       if (late < 0 || late > LATE_MIN) continue;
@@ -96,6 +97,11 @@ export async function runScheduledSummaries(source: string, now = new Date()): P
               outcome.telegram = r.ok ? "enviado" : `falhou: ${r.error}`;
             }
           }
+        }
+        if (slot.app) {
+          const r = await notifyUsers([u.id], { kind: "summary", title: `Pecúlio · resumo das ${slot.time}`, body: content.app.body, url: content.app.url, image: content.telegram.png });
+          outcome.app = !r.devices ? "guardada no sino (sem dispositivo com notificações ativas)" : r.pushed ? `enviada a ${r.pushed} de ${r.devices} dispositivo(s)` : `falhou: ${r.errors[0] ?? "sem resposta"}`;
+          if (r.devices && !r.pushed) report.errors.push(`${u.email} ${slot.time} (app): ${r.errors[0] ?? "sem resposta"}`);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message.slice(0, 100) : "erro";

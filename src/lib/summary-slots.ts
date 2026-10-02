@@ -1,10 +1,10 @@
 import type { Prisma } from "@prisma/client";
 
 /** Personal summary times (kept apart from the sending code so the global summary can use them too). */
-export type Slot = { on: boolean; time: string; email: boolean; telegram: boolean; days: "weekdays" | "all" };
+export type Slot = { on: boolean; time: string; email: boolean; telegram: boolean; app: boolean; days: "weekdays" | "all" };
 
 export const SLOT_COUNT = 4;
-export const DEFAULT_SLOTS: Slot[] = ["08:30", "13:00", "17:45", "22:30"].map((time) => ({ on: false, time, email: false, telegram: true, days: "weekdays" }));
+export const DEFAULT_SLOTS: Slot[] = ["08:30", "13:00", "17:45", "22:30"].map((time) => ({ on: false, time, email: false, telegram: true, app: false, days: "weekdays" }));
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -18,12 +18,13 @@ export function readSlots(raw: Prisma.JsonValue | null | undefined): Slot[] {
       time: typeof r.time === "string" && TIME_RE.test(r.time) ? r.time : def.time,
       email: typeof r.email === "boolean" ? r.email : def.email,
       telegram: typeof r.telegram === "boolean" ? r.telegram : def.telegram,
+      app: typeof r.app === "boolean" ? r.app : def.app,
       days: r.days === "all" ? "all" : "weekdays",
     };
   });
 }
 
-export const activeSlots = (slots: Slot[]) => slots.filter((s) => s.on && (s.email || s.telegram));
+export const activeSlots = (slots: Slot[]) => slots.filter((s) => s.on && (s.email || s.telegram || s.app));
 
 /** Date, minutes since midnight and weekday in Lisbon. */
 export function lisbonNow(now = new Date()) {

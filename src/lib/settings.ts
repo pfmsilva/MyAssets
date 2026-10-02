@@ -28,6 +28,7 @@ export type Settings = {
   polChannel: Channel; // Telegram proof-of-life requests go to the recipients who linked it
   telegramShowTotals: boolean; // include portfolio values (not just gains) in Telegram messages
   telegramWeeklyReport: boolean; // PDF report to the administrators on Mondays
+  appNotifications: boolean; // the general summary, alerts and health warnings also go to the bell and to devices with push on
   healthAlerts: boolean; // tell the administrators when a scheduled task, the quotes or the bot fail
 };
 
@@ -61,6 +62,7 @@ export const DEFAULTS: Settings = {
   telegramShowTotals: false,
   telegramWeeklyReport: false,
   healthAlerts: true,
+  appNotifications: true,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -95,6 +97,7 @@ export async function getSettings(): Promise<Settings> {
     telegramShowTotals: bool("telegramShowTotals"),
     telegramWeeklyReport: bool("telegramWeeklyReport"),
     healthAlerts: bool("healthAlerts"),
+    appNotifications: bool("appNotifications"),
   };
 }
 

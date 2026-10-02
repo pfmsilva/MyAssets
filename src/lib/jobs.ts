@@ -1,3 +1,4 @@
+import { adminIds, notifyUsers } from "./notify";
 import { prisma } from "./prisma";
 import { getSettings, alertRecipients } from "./settings";
 import { appUrl, emailConfigured, emailLayout, sendEmail } from "./email";
@@ -155,6 +156,11 @@ export async function runDailyJobs(opts: { dryRun?: boolean; force?: boolean } =
           delivered ||= ok > 0;
         }
       }
+    }
+    if (s.appNotifications) {
+      const r = await notifyUsers(await adminIds(), { kind: "alert", title: pending.length === 1 ? pending[0].title : `${pending.length} alertas do Pecúlio`, body: pending.map((a) => a.title).join(" · ").slice(0, 300), url: "/" });
+      results.push(`app: ${r.users} administrador(es), ${r.pushed} dispositivo(s)`);
+      delivered ||= r.users > 0;
     }
     if (delivered) for (const a of pending) await markSent(a.key);
     steps.push({ name: "Alertas", result: `${pending.length} alerta(s) · ${results.join(" · ")}` });

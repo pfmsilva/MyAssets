@@ -42,6 +42,7 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         telegramShowTotals: z.boolean(),
         telegramWeeklyReport: z.boolean(),
         healthAlerts: z.boolean(),
+        appNotifications: z.boolean(),
       })
       .parse({
         activityRetentionDays: fd.get("activityRetentionDays") || 0,
@@ -69,6 +70,7 @@ export async function updateSettings(_p: SettingsState, fd: FormData): Promise<S
         telegramShowTotals: fd.get("telegramShowTotals") === "on",
         telegramWeeklyReport: fd.get("telegramWeeklyReport") === "on",
         healthAlerts: fd.get("healthAlerts") === "on",
+        appNotifications: fd.get("appNotifications") === "on",
       });
     await saveSettings(data);
     await logActivity(me, "settings.update", { details: data });

@@ -18,13 +18,14 @@ export function SummarySlots({ initial, telegramLinked, telegramReady, emailRead
   return (
     <div className="space-y-3 text-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] text-sm">
+        <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="text-left text-xs text-ink-3">
               <th className="pb-2 font-normal">Ativo</th>
               <th className="pb-2 font-normal">Hora (Lisboa)</th>
               <th className="pb-2 font-normal">E-mail</th>
               <th className="pb-2 font-normal">Telegram</th>
+              <th className="pb-2 font-normal">App</th>
               <th className="pb-2 font-normal">Dias</th>
             </tr>
           </thead>
@@ -45,6 +46,9 @@ export function SummarySlots({ initial, telegramLinked, telegramReady, emailRead
                 </td>
                 <td className="py-2 pr-2">
                   <input type="checkbox" checked={s.telegram} onChange={(e) => set(i, { telegram: e.target.checked })} disabled={!s.on} aria-label={`Telegram às ${s.time}`} />
+                </td>
+                <td className="py-2 pr-2">
+                  <input type="checkbox" checked={s.app} onChange={(e) => set(i, { app: e.target.checked })} disabled={!s.on} aria-label={`Notificação na app às ${s.time}`} />
                 </td>
                 <td className="py-2">
                   <select value={s.days} onChange={(e) => set(i, { days: e.target.value as Slot["days"] })} disabled={!s.on} aria-label={`Dias do ${i + 1}.º horário`}>

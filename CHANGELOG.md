@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.27.0 — 2026-10-02
+- Notificações na app: em "A minha conta" cada pessoa ativa as notificações push em cada dispositivo (browser ou aplicação instalada) e recebe os resumos e alertas mesmo com a aplicação fechada. No iPhone/iPad é preciso adicionar a aplicação ao ecrã principal (iOS 16.4 ou mais recente). A notificação mostra só ganhos e perdas, nunca o valor do património. Sem custos e sem configuração: as chaves de envio são geradas pela própria aplicação.
+- Novo sino com o número de notificações por ler, no menu lateral e no cabeçalho do telemóvel, e a página "Notificações" com o histórico dos últimos 30 dias, incluindo a imagem dos gráficos dos resumos.
+- Os horários do resumo ganham a coluna "App", ao lado de e-mail e Telegram. O resumo geral do fim do dia, os alertas e os avisos da vigilância também chegam à app (para os administradores, no caso dos alertas e avisos), desligável em Definições → Telegram.
+- Dispositivos que deixem de receber notificações (desinstalados ou revogados) são esquecidos automaticamente. Cabeçalho móvel mais compacto.
+
 ## 1.26.2 — 2026-10-02
 - Telegram: a imagem dos gráficos (resumo, /resumo, /semana e /mes) passa a indicar em rodapé a data e a hora das cotações do Yahoo Finance usadas.
 

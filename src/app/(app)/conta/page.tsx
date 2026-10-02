@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser, ROLE_LABEL } from "@/lib/access";
 import { logView } from "@/lib/activity";
 import { prisma } from "@/lib/prisma";
@@ -7,6 +8,7 @@ import { fmtDate } from "@/lib/format";
 import { Card, PageHeader } from "@/components/ui";
 import { TelegramLink } from "@/components/TelegramLink";
 import { SummarySlots } from "@/components/SummarySlots";
+import { PushToggle } from "@/components/PushToggle";
 import { activeSlots, readSlots } from "@/lib/summary-slots";
 import { emailConfigured } from "@/lib/email";
 import { scheduleStatus } from "@/lib/summary-schedule";
@@ -21,8 +23,9 @@ export default async function AccountPage() {
     getSettings(),
   ]);
   const slots = readSlots(u.summarySlots);
-  const [sched, sends] = await Promise.all([
+  const [sched, devices, sends] = await Promise.all([
     scheduleStatus(),
+    prisma.pushSubscription.count({ where: { userId: me.id } }),
     prisma.activityLog.findMany({ where: { userId: me.id, action: "summary.scheduled" }, orderBy: { createdAt: "desc" }, take: 8, select: { createdAt: true, details: true } }),
   ]);
   const wakeAgoMin = sched.externalAgoMin;
@@ -62,6 +65,12 @@ export default async function AccountPage() {
             <p className="text-sm text-ink-2">O Telegram ainda não está configurado. O administrador tem de criar o bot no @BotFather e definir <code>TELEGRAM_BOT_TOKEN</code> no Vercel.</p>
           )}
         </Card>
+        <Card title="Notificações na app" className="lg:col-span-2">
+          <PushToggle devices={devices} />
+          <p className="mt-3 text-xs text-ink-3">
+            Tudo o que receber fica também no sino <Link className="text-accent underline" href="/notificacoes">Notificações</Link>. Nos horários abaixo, marque «App» para receber o resumo como notificação.
+          </p>
+        </Card>
         <Card title="Horários do resumo" className="lg:col-span-2">
           <p className="mb-3 text-sm text-ink-2">
             Escolha até quatro horas por dia para receber o resumo das carteiras (gráficos dos últimos 7 dias e o ganho de hoje às cotações do momento) e, em cada uma, se chega por e-mail, por Telegram ou pelos dois.
@@ -83,7 +92,7 @@ export default async function AccountPage() {
               <ul className="space-y-0.5 text-xs text-ink-2">
                 {sends.map((x, k) => {
                   const d = (x.details ?? {}) as Record<string, string | number>;
-                  const parts = [d.email ? `e-mail ${d.email}` : null, d.telegram ? `Telegram ${d.telegram}` : null, d.erro ? `erro: ${d.erro}` : null].filter(Boolean);
+                  const parts = [d.email ? `e-mail ${d.email}` : null, d.telegram ? `Telegram ${d.telegram}` : null, d.app ? `app ${d.app}` : null, d.erro ? `erro: ${d.erro}` : null].filter(Boolean);
                   const bad = parts.some((p) => String(p).includes("falhou") || String(p).includes("erro") || String(p).includes("não ligado"));
                   return (
                     <li key={k} className={bad ? "text-warn" : ""}>

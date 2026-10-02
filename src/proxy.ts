@@ -9,5 +9,5 @@ export default function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/auth|api/cron|api/telegram|login|prova-de-vida|_next/static|_next/image|favicon.ico|icon.svg|icons/|manifest.webmanifest).*)"],
+  matcher: ["/((?!api/auth|api/cron|api/telegram|login|prova-de-vida|_next/static|_next/image|favicon.ico|icon.svg|icons/|manifest.webmanifest|sw.js).*)"],
 };

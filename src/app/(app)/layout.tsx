@@ -6,6 +6,8 @@ import { NAV_GROUPS } from "@/lib/nav-groups";
 import { hasRole, ROLE_LABEL } from "@/lib/access";
 import { versionLabel, versionTitle } from "@/lib/version";
 import { getSettings } from "@/lib/settings";
+import { prisma } from "@/lib/prisma";
+import { NotificationBell } from "@/components/NotificationBell";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { after } from "next/server";
 import { healthCheckIfDue } from "@/lib/health";
@@ -16,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session?.user) redirect("/login");
   const user = session.user;
   const settings = await getSettings();
+  const unread = await prisma.notification.count({ where: { userId: user.id, readAt: null } }).catch(() => 0);
   // if neither scheduled task runs, an administrator's visit still notices it (at most every 6 hours)
   if (user.role === "ADMIN") after(() => healthCheckIfDue().catch(() => undefined));
   // any visit also sends personal summary times that are due (at most every 5 minutes)
@@ -31,8 +34,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <img src="/icon.svg" alt="" className="h-8 w-8" />
           <span className="text-lg font-semibold">Pecúlio</span>
         </Link>
-        <div className="mb-3">
-          <GlobalSearch placeholder="Pesquisar (Ctrl+K)" />
+        <div className="mb-3 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <GlobalSearch placeholder="Pesquisar (Ctrl+K)" />
+          </div>
+          <NotificationBell unread={unread} />
         </div>
         <SideNav items={items} />
         <div className="mt-auto border-t border-border pt-3">
@@ -50,13 +56,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:hidden" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}>
           <Link href="/" className="flex items-center gap-2">
             <img src="/icon.svg" alt="" className="h-7 w-7" />
-            <span className="font-semibold">Pecúlio</span>
+            <span className="hidden font-semibold sm:inline">Pecúlio</span>
           </Link>
           <div className="mx-2 min-w-0 flex-1">
             <GlobalSearch placeholder="Pesquisar" />
           </div>
-          <details className="relative">
-            <summary className="btn btn-sm cursor-pointer list-none">{(user.name ?? user.email).split(" ")[0]}</summary>
+          <NotificationBell unread={unread} />
+          <details className="relative ml-2">
+            <summary className="btn btn-sm max-w-[7rem] cursor-pointer list-none truncate">{(user.name ?? user.email).split(/[ .@]/)[0]}</summary>
             <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border bg-surface p-2 shadow-lg">
               <p className="px-2 pb-2 text-xs text-ink-3">{ROLE_LABEL[user.role]}</p>
               {more.map((m) => (

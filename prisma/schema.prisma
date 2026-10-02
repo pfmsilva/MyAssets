@@ -71,6 +71,8 @@ model User {
   sessions      Session[]
   importBatches ImportBatch[]
   activities    ActivityLog[]
+  pushSubscriptions PushSubscription[]
+  notifications     Notification[]
   createdAt     DateTime  @default(now())
 }
 
@@ -416,4 +418,35 @@ model AiAnalysis {
   costUsd     Float    @default(0)
 
   @@index([createdAt])
+}
+
+/// A device (browser or installed app) that accepted push notifications for a user.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  lastOkAt  DateTime?
+
+  @@index([userId])
+}
+
+/// What the app told a user (summaries, alerts, checks): the bell list, and what the push shows.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // summary | alert | health | test
+  title     String
+  body      String
+  url       String?
+  image     Bytes? // PNG of the charts, for summaries
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
 }

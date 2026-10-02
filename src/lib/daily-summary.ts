@@ -8,6 +8,7 @@ import { escHtml, sendTelegramPhotos, telegramConfigured, viaEmail, viaTelegram,
 import { getSettings } from "./settings";
 import { fmtEur } from "./format";
 import { activeSlots, readSlots } from "./summary-slots";
+import { notifyUsers } from "./notify";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const signed = (v: number, digits = 0) => `${v > 0 ? "+" : v < 0 ? "-" : ""}${fmtEur(Math.abs(v), digits)}`;
@@ -67,6 +68,8 @@ export type SummaryContent = {
   attachments: Attachment[];
   /** The same summary for Telegram: one image with both charts and a short caption. */
   telegram: { png: Buffer; caption: string };
+  /** The same summary as a notification in the app: short text (gains only) and the charts image. */
+  app: { title: string; body: string; url: string };
 };
 
 /** The end-of-day summary for one user: last 7 days of the quoted portfolios, day by day. */
@@ -149,11 +152,12 @@ ${labelsHtml(days.map((p) => ({ label: p.label, sub: p.weekday, value: p.pnl ===
     html: emailLayout("Resumo do dia", body, url),
     text,
     attachments: [{ filename: "ganho-acumulado.png", content: chart, contentId: CUMULATIVE_CID }],
+    app: { title: `Pecúlio · ${new Date().toLocaleTimeString("pt-PT", { timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit" })}`, body: `Hoje ${signed(today)} · 7 dias ${signed(week)}${quotesAt ? ` · cotações das ${quotesAt}` : ""}`, url: "/rentabilidade?dias=7&cot=1" },
     telegram: { png: summaryChartsPng(days, { footer: quotesStamp ? `Cotações do Yahoo Finance · ${quotesStamp}` : undefined }), caption },
   };
 }
 
-export type SummaryReport = { ranAt: string; sent: number; telegram?: number; skipped: string[]; errors: string[] };
+export type SummaryReport = { ranAt: string; sent: number; telegram?: number; app?: number; skipped: string[]; errors: string[] };
 
 /**
  * Sends the end-of-day summary to the chosen users, once a day each, by e-mail and/or Telegram.
@@ -169,7 +173,9 @@ export async function runDailySummary(opts: { force?: boolean; onlyUserId?: stri
   const tg = viaTelegram(channel) && telegramConfigured();
   if (viaEmail(channel) && !emailConfigured()) report.errors.push("e-mail não configurado (RESEND_API_KEY, ALERTS_FROM)");
   if (viaTelegram(channel) && !telegramConfigured()) report.errors.push("Telegram não configurado (TELEGRAM_BOT_TOKEN)");
-  if (!mail && !tg) return report;
+  // the bell and the devices with push on: part of the automatic summary only, not of the preview buttons
+  const app = s.appNotifications && !opts.onlyUserId && !opts.force;
+  if (!mail && !tg && !app) return report;
   const lisbonDay = new Date().toLocaleDateString("en-GB", { timeZone: "Europe/Lisbon", weekday: "short" });
   if (!opts.force && !s.dailySummaryWeekends && (lisbonDay === "Sat" || lisbonDay === "Sun")) return { ...report, skipped: ["fim de semana"] };
 
@@ -190,7 +196,9 @@ export async function runDailySummary(opts: { force?: boolean; onlyUserId?: stri
     const needMail = mail && (opts.force || !(await prisma.alertSent.findUnique({ where: { key: mailKey } })));
     // a group linked by several people receives the summary once
     const needTg = tg && !!tgKey && (opts.force ? true : !(await prisma.alertSent.findUnique({ where: { key: tgKey } })));
-    if (!needMail && !needTg) {
+    const appKey = `summary-app:${u.id}:${day}`;
+    const needApp = app && !(await prisma.alertSent.findUnique({ where: { key: appKey } }));
+    if (!needMail && !needTg && !needApp) {
       report.skipped.push(`${u.email}: já enviado hoje${tg && !u.telegramChatId ? " (Telegram não ligado)" : ""}`);
       continue;
     }
@@ -214,6 +222,12 @@ export async function runDailySummary(opts: { force?: boolean; onlyUserId?: stri
           report.telegram = (report.telegram ?? 0) + 1;
         } else report.errors.push(`${u.email} (Telegram): ${r.error}`);
       } else if (tg && !u.telegramChatId && opts.onlyUserId) report.skipped.push("Telegram ainda não ligado nesta conta");
+      if (needApp) {
+        const r = await notifyUsers([u.id], { kind: "summary", title: "Pecúlio · resumo do dia", body: content.app.body, url: content.app.url, image: content.telegram.png });
+        await prisma.alertSent.upsert({ where: { key: appKey }, create: { key: appKey }, update: { sentAt: new Date() } });
+        report.app = (report.app ?? 0) + 1;
+        if (r.devices && !r.pushed) report.errors.push(`${u.email} (app): ${r.errors[0] ?? "sem resposta"}`);
+      }
     } catch (e) {
       report.errors.push(`${u.email}: ${e instanceof Error ? e.message.slice(0, 100) : "erro"}`);
     }
