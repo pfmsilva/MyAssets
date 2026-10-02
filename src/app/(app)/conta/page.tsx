@@ -9,6 +9,7 @@ import { TelegramLink } from "@/components/TelegramLink";
 import { SummarySlots } from "@/components/SummarySlots";
 import { activeSlots, readSlots } from "@/lib/summary-slots";
 import { emailConfigured } from "@/lib/email";
+import { scheduleStatus } from "@/lib/summary-schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,12 @@ export default async function AccountPage() {
     getSettings(),
   ]);
   const slots = readSlots(u.summarySlots);
+  const [sched, sends] = await Promise.all([
+    scheduleStatus(),
+    prisma.activityLog.findMany({ where: { userId: me.id, action: "summary.scheduled" }, orderBy: { createdAt: "desc" }, take: 8, select: { createdAt: true, details: true } }),
+  ]);
+  const wakeAgoMin = sched.externalAgoMin;
+  const lisbon = (d: Date) => d.toLocaleString("pt-PT", { timeZone: "Europe/Lisbon", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   const ownTimes = activeSlots(slots).length > 0;
   const whatYouGet = [
     ownTimes && activeSlots(slots).some((x) => x.telegram) ? `o resumo às ${activeSlots(slots).filter((x) => x.telegram).map((x) => x.time).join(", ")}` : null,
@@ -61,6 +68,32 @@ export default async function AccountPage() {
             {ownTimes ? " Com horários próprios deixa de receber o resumo geral do fim do dia." : s.dailySummary !== "off" && (s.dailySummary === "all" || u.role === "ADMIN") ? " Enquanto não ativar nenhum, recebe o resumo geral do fim do dia (~22h30)." : ""}
           </p>
           <SummarySlots initial={slots} telegramLinked={!!u.telegramChatId} telegramReady={telegramConfigured()} emailReady={emailConfigured()} />
+          {ownTimes && (
+            <p className={`mt-3 text-xs ${wakeAgoMin !== null && wakeAgoMin <= 30 ? "text-ink-3" : "text-warn"}`}>
+              {wakeAgoMin === null
+                ? "⚠ O despertador da aplicação ainda não está configurado: os horários só saem perto das 08:00 e das 22:30 ou quando alguém abre a aplicação. O administrador configura-o em Definições → Resumo diário."
+                : wakeAgoMin <= 30
+                  ? `Despertador a funcionar (última chamada há ${wakeAgoMin} min).`
+                  : `⚠ O despertador não chama a aplicação há ${wakeAgoMin >= 120 ? `${Math.round(wakeAgoMin / 60)} h` : `${wakeAgoMin} min`}: os horários podem sair atrasados ou não sair.`}
+            </p>
+          )}
+          {sends.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-1 text-xs font-medium text-ink-2">Últimos envios agendados</p>
+              <ul className="space-y-0.5 text-xs text-ink-2">
+                {sends.map((x, k) => {
+                  const d = (x.details ?? {}) as Record<string, string | number>;
+                  const parts = [d.email ? `e-mail ${d.email}` : null, d.telegram ? `Telegram ${d.telegram}` : null, d.erro ? `erro: ${d.erro}` : null].filter(Boolean);
+                  const bad = parts.some((p) => String(p).includes("falhou") || String(p).includes("erro") || String(p).includes("não ligado"));
+                  return (
+                    <li key={k} className={bad ? "text-warn" : ""}>
+                      {lisbon(x.createdAt)} · horário das {d.hora}{Number(d.atraso_min) > 10 ? ` (saiu ${d.atraso_min} min depois, pelo ${d.origem})` : ""} — {parts.join(" · ") || "sem canal"}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </Card>
       </div>
     </>

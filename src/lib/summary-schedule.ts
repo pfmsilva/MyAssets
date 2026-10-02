@@ -4,6 +4,7 @@ import { buildDailySummary, type SummaryContent } from "./daily-summary";
 import { emailConfigured, sendEmail } from "./email";
 import { sendTelegramPhotos, telegramConfigured } from "./telegram";
 import { getSettings } from "./settings";
+import { logActivity } from "./activity";
 import { activeSlots, LATE_MIN, lisbonNow, readSlots, toMin, type Slot } from "./summary-slots";
 export { activeSlots, readSlots, DEFAULT_SLOTS, SLOT_COUNT, type Slot } from "./summary-slots";
 
@@ -29,6 +30,14 @@ export async function skipPassedToday(userId: string, slots: Slot[], now = new D
   for (const [i, s] of slots.entries()) if (s.on && toMin(s.time) <= minutes) await claim(`slot:${userId}:${i}:${s.time}:${date}`);
 }
 
+/** Gives a claimed time back after a failure, so the next wake-up retries it (at most 3 tries). */
+async function release(key: string) {
+  const tries = await prisma.alertSent.count({ where: { key: { startsWith: `fail:${key}:` } } });
+  await prisma.alertSent.create({ data: { key: `fail:${key}:${Date.now()}` } });
+  if (tries < 2) await prisma.alertSent.deleteMany({ where: { key } });
+  return tries < 2;
+}
+
 export type ScheduleReport = { at: string; source: string; sent: number; telegram: number; errors: string[]; skipped: string[] };
 
 export async function runScheduledSummaries(source: string, now = new Date()): Promise<ScheduleReport> {
@@ -46,7 +55,11 @@ export async function runScheduledSummaries(source: string, now = new Date()): P
       if (slot.days === "weekdays" && weekend) continue;
       const late = minutes - toMin(slot.time);
       if (late < 0 || late > LATE_MIN) continue;
-      if (!(await claim(`slot:${u.id}:${i}:${slot.time}:${date}`))) continue;
+      const slotKey = `slot:${u.id}:${i}:${slot.time}:${date}`;
+      if (!(await claim(slotKey))) continue;
+      // one line per time in the activity log (and in "A minha conta"), to see what went out and why not
+      const outcome: Record<string, string> = {};
+      let retry = false;
       try {
         content ??= await buildDailySummary(u, { telegramTotals: s.telegramShowTotals });
         if (!content) {
@@ -59,21 +72,42 @@ export async function runScheduledSummaries(source: string, now = new Date()): P
             const r = await sendEmail({ to: [u.email], subject: content.subject, html: content.html, text: content.text, attachments: content.attachments });
             if (r.ok) report.sent++;
             else report.errors.push(`${u.email} ${slot.time}: ${r.error}`);
+            outcome.email = r.ok ? "enviado" : `falhou: ${r.error}`;
           }
         }
         if (slot.telegram) {
           if (!telegramConfigured()) report.errors.push(`${u.email} ${slot.time}: Telegram não configurado (TELEGRAM_BOT_TOKEN)`);
-          else if (!u.telegramChatId) report.skipped.push(`${u.email} ${slot.time}: Telegram não ligado`);
+          else if (!u.telegramChatId) {
+            report.skipped.push(`${u.email} ${slot.time}: Telegram não ligado`);
+            outcome.telegram = "não ligado (A minha conta → Ligar Telegram)";
+          }
           // a family group linked by several people with the same time gets it once
-          else if (await claim(`slot-tg:${u.telegramChatId}:${slot.time}:${date}`)) {
-            const r = await sendTelegramPhotos(u.telegramChatId, [{ png: content.telegram.png, name: "resumo.png" }], content.telegram.caption);
-            if (r.ok) report.telegram++;
-            else report.errors.push(`${u.email} ${slot.time} (Telegram): ${r.error}`);
+          else {
+            const tgKey = `slot-tg:${u.telegramChatId}:${slot.time}:${date}`;
+            if (!(await claim(tgKey))) outcome.telegram = "já enviado a esta conversa por outra pessoa";
+            else {
+              const r = await sendTelegramPhotos(u.telegramChatId, [{ png: content.telegram.png, name: "resumo.png" }], content.telegram.caption);
+              if (r.ok) report.telegram++;
+              else {
+                report.errors.push(`${u.email} ${slot.time} (Telegram): ${r.error}`);
+                await prisma.alertSent.deleteMany({ where: { key: tgKey } });
+                retry = !outcome.email?.startsWith("enviado");
+              }
+              outcome.telegram = r.ok ? "enviado" : `falhou: ${r.error}`;
+            }
           }
         }
       } catch (e) {
-        report.errors.push(`${u.email} ${slot.time}: ${e instanceof Error ? e.message.slice(0, 100) : "erro"}`);
+        const msg = e instanceof Error ? e.message.slice(0, 100) : "erro";
+        report.errors.push(`${u.email} ${slot.time}: ${msg}`);
+        outcome.erro = msg;
+        retry = true;
       }
+      const retried = retry ? await release(slotKey) : false;
+      await logActivity({ id: u.id, email: u.email, name: u.name }, "summary.scheduled", {
+        details: { hora: slot.time, atraso_min: late, origem: source, ...outcome, ...(retried ? { nova_tentativa: "no próximo despertador" } : {}) },
+        meta: { ip: null, userAgent: null },
+      });
     }
   }
   await prisma.setting.upsert({ where: { key: "scheduleTick" }, create: { key: "scheduleTick", value: JSON.stringify(report) }, update: { value: JSON.stringify(report) } });
@@ -98,5 +132,6 @@ export async function scheduleStatus() {
   const users = await prisma.user.findMany({ where: { summarySlots: { not: Prisma.DbNull } }, select: { summarySlots: true } });
   const people = users.filter((u) => activeSlots(readSlots(u.summarySlots)).length).length;
   const [tick, ext] = await Promise.all([prisma.setting.findUnique({ where: { key: "scheduleTick" } }), prisma.setting.findUnique({ where: { key: "scheduleTickExternalAt" } })]);
-  return { people, last: tick ? (JSON.parse(tick.value) as ScheduleReport) : null, externalAt: ext?.value ?? null };
+  const externalAgoMin = ext ? Math.round((Date.now() - new Date(ext.value).getTime()) / 60e3) : null;
+  return { people, last: tick ? (JSON.parse(tick.value) as ScheduleReport) : null, externalAt: ext?.value ?? null, externalAgoMin };
 }

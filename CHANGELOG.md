@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.26.1 — 2026-10-02
+- Horários do resumo mais fiáveis: se o envio para o Telegram falhar (ou a preparação do resumo der erro), o horário volta a ser tentado no despertador seguinte, até 3 vezes, em vez de se perder.
+- As tarefas das 07:00 e 21:30 UTC tratam primeiro dos horários pessoais, antes do trabalho mais demorado que podia esgotar o tempo limite.
+- "A minha conta" mostra os últimos envios agendados (hora, atraso, canal, enviado ou porque falhou) e se o despertador da aplicação está a funcionar; cada envio fica também no registo de atividade.
+
 ## 1.26.0 — 2026-09-30
 - Horários do resumo por utilizador: em "A minha conta" cada pessoa escolhe até quatro horas por dia (hora de Lisboa) para receber o resumo das carteiras e, em cada uma, se chega por e-mail, por Telegram ou pelos dois, só nos dias úteis ou todos os dias. Botões para testar por e-mail e no Telegram.
 - Quem tiver horários próprios deixa de receber o resumo geral do fim do dia. Cada horário sai uma vez por dia (até 3 horas depois da hora marcada, se a aplicação só acordar mais tarde); ao guardar depois da hora, o horário desse dia não é enviado atrasado; num grupo da família com a mesma hora chega uma só mensagem.

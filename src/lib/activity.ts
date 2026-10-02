@@ -58,6 +58,7 @@ export const ACTION_LABEL: Record<string, string> = {
   "jobs.run": "Tarefas diárias executadas",
   "health.check": "Vigilância verificada",
   "summary.schedule": "Horários do resumo alterados",
+  "summary.scheduled": "Resumo agendado",
   "activity.purge": "Registo de atividade limpo",
   "export.excel": "Exportação Excel",
   "export.backup": "Backup descarregado",
